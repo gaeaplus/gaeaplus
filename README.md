@@ -13,7 +13,7 @@ Visualise massive vector data sets at arbitrary level of detail. Gaea+ Render2Te
 
 Custom shader support
 ---------------------
-Release the power of graphics processors. Make beautiful atmospheric effects, cast photo-realistic shadows, render water surface with supplied shaders or write your own GLSL or Cg shaders and watch the globe transform right in front of you.
+Unleash the power of graphics processors. Make beautiful atmospheric effects, cast photo-realistic shadows, render water surface with supplied shaders or write your own GLSL or Cg shaders and watch the globe transform right in front of you.
 
 Seamless OGC WFS
 ----------------
@@ -21,7 +21,7 @@ Access your data as they appear in your data store. Web Feature Service layer pr
 
 References
 ----------
-Gaea+ Open Source core is used in mission-critical emergency response systems with massive datasets deployed in several regional call centers. It is also used by spatial planners for data visualization, manipulation and analysis, as well as for recordng stunning photo-realistic presentations of our World.
+Gaea+ Open Source core is used in mission-critical emergency response systems with massive datasets deployed in several regional emergency call centers. It is also used by spatial planners for data visualization, manipulation and analysis, as well as for recordng stunning photo-realistic presentations of our World.
 
 Reaching us
 -----------
