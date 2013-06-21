@@ -23,6 +23,10 @@ References
 ----------
 Gaea+ Open Source core is used in mission-critical emergency response systems with massive datasets deployed in several regional emergency call centers. It is also used by spatial planners for data visualization, manipulation and analysis, as well as for recordng stunning photo-realistic presentations of our World.
 
+Getting started
+---------------
+The build scripts etc are not yet available - sorry. To get you started, compiled classes and required jars are temporarily here in the all-compiled directory. Just run the run.sh script there and hopefully it should work.
+
 Reaching us
 -----------
 Furhter information can be found at the [project's home page](http://gaeaplus.eu) or at info@gaeaplus.eu.

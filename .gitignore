@@ -1,7 +1,7 @@
-*.class
+#temporarily allowing classes and jars#*.class
 
 # Package Files #
-*.jar
+#temporarily allowing classes and jars#*.jar
 *.war
 *.ear
 
