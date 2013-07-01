@@ -1,0 +1,31 @@
+<project name="GaeaPlusOpenSource" default="dist">
+	<property name="lib-jars" value="lib/gluegen-rt.jar:lib/jogl-all.jar:lib/gdal.jar:lib/plugin.jar"/>
+	<property name="gaea-jar" value="build/jar/GaeaPlusOpenSource.jar"/>
+
+    <target name="clean">
+        <delete dir="build"/>
+    </target>
+
+    <target name="compile">
+        <mkdir dir="build/classes"/>
+		<copy todir="build/classes">
+			<fileset dir="src" excludes="**/*.java"/>
+		</copy>
+        <javac srcdir="src" destdir="build/classes" classpath="${lib-jars}"/>
+    </target>
+
+    <target name="dist" depends="compile">
+        <mkdir dir="build/jar"/>
+        <jar destfile="${gaea-jar}" basedir="build/classes"/>
+    </target>
+
+    <target name="run" depends="dist">
+        <java dir="." fork="true" classname="si.xlab.gaea.examples.GaeaApplicationExample">
+			<classpath>
+				<pathelement path="${lib-jars}"/>
+				<pathelement location="${gaea-jar}"/>
+			</classpath>
+		</java>
+    </target>
+
+</project>

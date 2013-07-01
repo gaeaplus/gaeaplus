@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WorldWindConfiguration version="1">
+    <Property name="gov.nasa.worldwind.avkey.SceneControllerClassName"
+              value="si.xlab.gaea.core.GaeaSceneController"/>    
+    
+    <LayerList href="si/xlab/gaea/examples/layers/gaea-example-layers.xml"/>
+    
+    <Property name="gov.nasa.worldwind.avkey.InitialLatitude" value="46"/>
+    <Property name="gov.nasa.worldwind.avkey.InitialLongitude" value="14.7"/>
+    <Property name="gov.nasa.worldwind.avkey.InitialAltitude" value="150000"/>
+</WorldWindConfiguration>
