@@ -1,9 +1,12 @@
-#temporarily allowing classes and jars#*.class
+build
+
+*.class
 
 # Package Files #
-#temporarily allowing classes and jars#*.jar
+*.jar
 *.war
 *.ear
 
 # Vi temp files #
 .*.swp
+
