@@ -25,7 +25,7 @@ Gaea+ Open Source core is used in mission-critical emergency response systems wi
 
 Getting started
 ---------------
-The build scripts etc are not yet available - sorry. To get you started, compiled classes and required jars are temporarily here in the all-compiled directory. Just run the run.sh script there and hopefully it should work.
+Just type "ant run" and play with the example application!
 
 Reaching us
 -----------
