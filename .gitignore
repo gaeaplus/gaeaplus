@@ -9,3 +9,4 @@ build
 # Vi temp files #
 .*.swp
 
+/dist/
