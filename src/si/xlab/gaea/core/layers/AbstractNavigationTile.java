@@ -246,7 +246,7 @@ public abstract class AbstractNavigationTile<BaseTile>
 			lastRow++;
 		}
 
-		int firstColOfRightTile = Tile.computeRow(dLon, navSector.getMaxLongitude(), Angle.NEG180);
+		int firstColOfRightTile = Tile.computeColumn(dLon, navSector.getMaxLongitude(), Angle.NEG180);
 		if(firstColOfRightTile - lastCol > 1){
 			lastCol++;
 		}
