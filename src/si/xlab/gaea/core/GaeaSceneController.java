@@ -1,27 +1,23 @@
 package si.xlab.gaea.core;
 
 import gov.nasa.worldwind.AbstractSceneController;
-import gov.nasa.worldwind.geom.Box;
-import gov.nasa.worldwind.geom.Extent;
-import gov.nasa.worldwind.geom.Sector;
+import gov.nasa.worldwind.avlist.AVKey;
+import gov.nasa.worldwind.geom.Angle;
+import gov.nasa.worldwind.geom.Quaternion;
 import gov.nasa.worldwind.geom.Vec4;
 import gov.nasa.worldwind.layers.Layer;
-import gov.nasa.worldwind.layers.LayerRenderAttributes;
+import gov.nasa.worldwind.layers.RenderAttributes;
 import gov.nasa.worldwind.render.DrawContext;
 import si.xlab.gaea.core.shaders.ShaderFactory;
 import gov.nasa.worldwind.terrain.SectorGeometry;
-import gov.nasa.worldwind.terrain.SectorGeometryList;
 import gov.nasa.worldwind.util.Logging;
 import gov.nasa.worldwind.util.MeasureRenderTime;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.logging.Level;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLContext;
-import javax.media.opengl.glu.GLU;
 import si.xlab.gaea.avlist.AvKeyExt;
 import si.xlab.gaea.core.shaders.data.GaeaShaderFactoryGLSL;
 
@@ -81,7 +77,36 @@ public class GaeaSceneController extends AbstractSceneController {
 	}
 
 	protected void applySun(DrawContext dc) {
-		dc.setSunPosition(dc.getGlobe().getSunDirection());
+		Vec4 zenithPosition = dc.getGlobe().getZenithPosition();
+		Vec4 sunlightDirection = null;
+		
+		if(zenithPosition != null){
+			sunlightDirection = dc.getGlobe().getZenithPosition().normalize3().getNegative3();
+		}
+		else{
+			Vec4 eyePoint = dc.getView().getCurrentEyePoint();
+			sunlightDirection = eyePoint.perpendicularTo3(Vec4.UNIT_Y)
+							.transformBy3(Quaternion.fromAxisAngle(Angle.fromDegrees(40.0), Vec4.UNIT_Y))
+							.normalize3()
+							.getNegative3();
+		}
+
+		if(sunlightDirection != null){
+			//animate
+			Vec4 delta = sunlightDirection.subtract3(dc.getSunlightDirection());
+			dc.setSunlightDirection(dc.getSunlightDirection().add3(delta.multiply3(0.06)));
+			if(delta.getLength3() > 0.1){
+				this.firePropertyChange(AVKey.REPAINT, null, null);
+			}
+		}
+		
+		if(isSunLightEnabled && !dc.getDeferredRenderer().isSupported(dc)){
+			logger.severe("Disabling effects. DeferredRenderer not supported!");
+			isSunLightEnabled = false;
+			atmosphereEnabled = false;
+			aerialPerspectiveEnabled = false;
+		}
+
 		dc.setAtmosphereEnabled(atmosphereEnabled);
 		dc.setAerialPerspectiveEnabled(aerialPerspectiveEnabled);
 		dc.setSunLightEnabled(isSunLightEnabled);
@@ -96,7 +121,7 @@ public class GaeaSceneController extends AbstractSceneController {
 		if (dc.getView() == null
 				|| !this.shadowsEnabled
 				|| !this.isSunLightEnabled
-				|| dc.getSunPosition() == null) {
+				|| dc.getSunlightDirection() == null) {
 
 			this.drawShadows = false;
 			dc.setShadowsEnabled(drawShadows);
@@ -111,58 +136,6 @@ public class GaeaSceneController extends AbstractSceneController {
 			}
 		}
 
-		//get terrain quality
-//		double target;
-//		if (Configuration.getStringValue(AVKey.TESSELLATOR_CLASS_NAME).equalsIgnoreCase(
-//				RectangularTessellator.class.getName()))
-//		{
-//			target = RectangularTessellator.getResolutionTarget();
-//		}
-//		else if (Configuration.getStringValue(AVKey.TESSELLATOR_CLASS_NAME).equalsIgnoreCase(
-//				RectangularNormalTessellator.class.getName()))
-//		{
-//			target = RectangularNormalTessellator.getResolutionTarget();
-//		}
-//		else
-//		{
-//			this.shadowsEnabled = false;
-//			this.drawShadows = false;
-//			dc.setShadowsEnabled(drawShadows);
-//			return;
-//		}
-
-		//max altitude draw shadows table
-//		double[][] maxShadowElevationMap = new double[6][2];
-//
-//		maxShadowElevationMap[0][0] = 1.3;
-//		maxShadowElevationMap[0][1] = 3500.0;
-//		maxShadowElevationMap[1][0] = 1.7;
-//		maxShadowElevationMap[1][1] = 9500.0;
-//		maxShadowElevationMap[2][0] = 1.96;
-//		maxShadowElevationMap[2][1] = 30000.0;
-//		maxShadowElevationMap[3][0] = 2.03;
-//		maxShadowElevationMap[3][1] = 60000.0;
-//		maxShadowElevationMap[4][0] = 2.05;
-//		maxShadowElevationMap[4][1] = 130000.0;
-//		maxShadowElevationMap[5][0] = 2.1;
-//		maxShadowElevationMap[5][1] = 410000.0;
-
-		//compute absolute eye altitude
-//		Position eyePosition = dc.getView().getEyePosition();
-//		double terrainElev = dc.getGlobe().getElevation(eyePosition);
-//		double distance = eyePosition.elevation - terrainElev;
-
-//		double maxDrawShadowElevation = 3500.0;
-
-		//compute max altitude
-//		for(int i = maxShadowElevationMap.length - 1; i >= 0; i--){
-//			if(target >= maxShadowElevationMap[i][0]){
-//				maxDrawShadowElevation = maxShadowElevationMap[i][1];
-//				break;
-//			}
-//		}
-
-//		this.drawShadows = (distance < maxDrawShadowElevation ? true : false);
 		this.drawShadows = true;
 		dc.setShadowsEnabled(drawShadows);
 
@@ -172,7 +145,7 @@ public class GaeaSceneController extends AbstractSceneController {
 
 		//draw shadow map//////////////////////////////////////////
 		dc.enableShadowMode();
-		if(!ShadowMapFactory.getWorldShadowMapInstance(dc).renderShadowMap(dc, dc.getSunPosition().normalize3())){
+		if(!ShadowMapFactory.getWorldShadowMapInstance(dc).renderShadowMap(dc, dc.getSunlightDirection().normalize3())){
 			this.drawShadows = false;
 			dc.setShadowsEnabled(false);
 		}
@@ -180,6 +153,8 @@ public class GaeaSceneController extends AbstractSceneController {
 		///////////////////////////////////////////////////////////
 	}
 
+	//occlusion filter test
+	/*
 	protected void occlusionFilterStart(DrawContext dc) {
 		GL2 gl = dc.getGL().getGL2();
 		clearFrame(dc);
@@ -321,6 +296,7 @@ public class GaeaSceneController extends AbstractSceneController {
 			dc.getView().popReferenceCenter(dc);
 		}
 	}
+	*/
 
 	@Override
 	protected void initializeFrame(DrawContext dc) {
@@ -334,17 +310,17 @@ public class GaeaSceneController extends AbstractSceneController {
 	protected void drawLayer(DrawContext dc, Layer layer) {
 		try {
 			if (deferredRenderer.isEnabled()) {
-				MeasureRenderTime.startMesure(dc, layer.getName());
+				MeasureRenderTime.startMeasure(dc, layer.getName());
 				deferredRenderer.renderLayer(dc, layer);
-				MeasureRenderTime.stopMesure(dc);
+				MeasureRenderTime.stopMeasure(dc);
 				return;
 			}
 
 			if (layer != null && layer.isEnabled()) {
-				MeasureRenderTime.startMesure(dc, layer.getName());
+				MeasureRenderTime.startMeasure(dc, layer.getName());
 				dc.setCurrentLayer(layer);
 				layer.render(dc);
-				MeasureRenderTime.stopMesure(dc);
+				MeasureRenderTime.stopMeasure(dc);
 			}
 		} catch (Exception e) {
 			String message = Logging.getMessage("SceneController.ExceptionWhileRenderingLayer",
@@ -354,121 +330,92 @@ public class GaeaSceneController extends AbstractSceneController {
 		}
 	}
 
-//	protected void doDrawLayer(DrawContext dc, Layer layer, Shader shader){
-//		if(shader == null){
-//			dc.setCurrentLayer(layer);
-//			layer.render(dc);
-//		}
-//		else{
-//			shader.enable(dc.getShaderContext());
-//			dc.setCurrentLayer(layer);
-//			layer.render(dc);
-//			shader.disable(dc.getShaderContext());
-//		}
-//	}
-
-	/*
-	 private Shader setShaderForLayer(DrawContext dc, Layer layer){
-
-	 Shader shader = null;
-
-	 if(dc.isPickingMode() || !dc.isSunLightEnabled()){
-	 return null;
-	 }
-
-	 if(dc.isSunLightEnabled() && layer instanceof Shadow){
-	 if(dc.isShadowMode()){
-	 shader = dc.getShaderContext().getShader("DepthShader.glsl", "#version 120\n");
-	 }
-	 else if(layer.getRenderAttributes().getRenderMode() == LayerRenderAttributes.COLOR_MODE)
-	 {
-	 shader = dc.getShaderContext().getShaderFactory().getColorLightingShader(dc);
-	 }
-	 else if(layer.getRenderAttributes().getRenderMode() == LayerRenderAttributes.TEXTURE_MODE)
-	 {
-	 shader = dc.getShaderContext().getShaderFactory().getTexLightingShader(dc);
-	 }
-	 }
-	
-	 return shader;
-	 }
-	 */
 	@Override
 	public void doRepaint(DrawContext dc) {
 		this.initializeFrame(dc);
 		try {
-			MeasureRenderTime.startMesure(dc, "applyView()");
+			MeasureRenderTime.startMeasure(dc, "applyView()");
 			this.applyView(dc);
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
 
-			MeasureRenderTime.startMesure(dc, "applySun()");
+			MeasureRenderTime.startMeasure(dc, "applySun()");
 			this.applySun(dc);
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
 
 			dc.addPickPointFrustum();
 
-			MeasureRenderTime.startMesure(dc, "createTerrain()");
+			MeasureRenderTime.startMeasure(dc, "createTerrain()");
 			this.createTerrain(dc);
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
 
-//			if(deferredRenderer.isEnabled()){
-//				this.occlusionFilterStart(dc);
-//			}
+			//if(deferredRenderer.isEnabled()){
+			//	this.occlusionFilterStart(dc);
+			//}
 
-			MeasureRenderTime.startMesure(dc, "ShadowMap()");
-			this.drawShadowMap(dc);
-			MeasureRenderTime.stopMesure(dc);
-
-			MeasureRenderTime.startMesure(dc, "preRender()");
+			MeasureRenderTime.startMeasure(dc, "preRender()");
 			this.preRender(dc);
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
 
-//			if(deferredRenderer.isEnabled()){
-//				this.occlusionFilerEnd(dc);
-//			}
+			MeasureRenderTime.startMeasure(dc, "ShadowMap()");
+			this.drawShadowMap(dc);
+			MeasureRenderTime.stopMeasure(dc);
 
-			MeasureRenderTime.startMesure(dc, "picking()");
+			//if(deferredRenderer.isEnabled()){
+			//	this.occlusionFilerEnd(dc);
+			//}
+
+			MeasureRenderTime.startMeasure(dc, "picking()");
 			this.clearFrame(dc);
 			this.pick(dc);
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
 
-			MeasureRenderTime.startMesure(dc, "draw()");
+			MeasureRenderTime.startMeasure(dc, "draw()");
 			this.clearFrame(dc);
 
 			if (deferredRenderer.isEnabled()) {
-				MeasureRenderTime.startMesure(dc, "deferredRenderer");
+				MeasureRenderTime.startMeasure(dc, "deferredRenderer");
 				deferredRenderer.begin(dc);
 
 				//render depth
 				GL gl = dc.getGL();
 				gl.glColorMask(false, false, false, false);
+				dc.getSurfaceGeometry().beginRendering(dc);
 				for (SectorGeometry sg : dc.getSurfaceGeometry()) {
-					sg.render(dc);
+					sg.beginRendering(dc, 0);
+					sg.renderMultiTexture(dc, 0, true);
+					sg.endRendering(dc);
 				}
+				dc.getSurfaceGeometry().endRendering(dc);
 				gl.glColorMask(true, true, true, true);
 
-				MeasureRenderTime.startMesure(dc, "normalMap");
+				MeasureRenderTime.startMeasure(dc, "normalMap");
 				deferredRenderer.renderTerrainNormals(dc);
-				MeasureRenderTime.stopMesure(dc);
+				MeasureRenderTime.stopMeasure(dc);
 
 				//draw all layers
-				drawLayers(dc, LayerRenderAttributes.RenderType.GLOBE);
+				drawLayers(dc, RenderAttributes.RenderType.SPATIAL);
+				drawLayers(dc, RenderAttributes.RenderType.GLOBE);
+
+				drawOrderedSurfaceRenderables(dc);
+				drawOrderedRenderables(dc, RenderAttributes.RenderType.SPATIAL);
+				drawOrderedRenderables(dc, RenderAttributes.RenderType.GLOBE);
 
 				deferredRenderer.end(dc);
-				MeasureRenderTime.stopMesure(dc);
+				MeasureRenderTime.stopMeasure(dc);
 
-				MeasureRenderTime.startMesure(dc, "globalLighting");
+				MeasureRenderTime.startMeasure(dc, "globalLighting");
 				globalLighting.renderEffects(dc, deferredRenderer);
-				MeasureRenderTime.stopMesure(dc);
+				MeasureRenderTime.stopMeasure(dc);
 
-				drawLayers(dc, LayerRenderAttributes.RenderType.SCREEN);
+				drawLayers(dc, RenderAttributes.RenderType.SCREEN);
 
-				drawOrderedRenderables(dc);
+				drawScreenCreditController(dc);
+				drawOrderedRenderables(dc, RenderAttributes.RenderType.SCREEN);
 				drawDiagnosticDisplay(dc);
 			} else {
 				draw(dc);
 			}
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
 		} finally {
 			this.finalizeFrame(dc);
 		}

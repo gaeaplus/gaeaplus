@@ -69,9 +69,13 @@ public class BasicGLSLShader implements Shader{
 
 		GL2 gl = GLContext.getCurrent().getGL().getGL2();
 
-		if(!gl.glIsProgram(programID)){
+		if(!isValid){
 			String msg = "Trying to enable invalid shader: " + this.fileUrl.getFile();
 			logger.severe(msg);	
+			return;
+		}
+
+		if(context.getCurrentShader() == this){
 			return;
 		}
 
@@ -126,6 +130,10 @@ public class BasicGLSLShader implements Shader{
 			throw new IllegalStateException();
 		}
 
+		if(floats == null){
+			return;
+		}
+
 		GL2 gl = GLContext.getCurrent().getGL().getGL2();
 
 		int len = floats.length;
@@ -158,6 +166,10 @@ public class BasicGLSLShader implements Shader{
 			String message = "BasicGLSLShader.setParam(): GLContext not current!!";
 			logger.severe(message);
 			throw new IllegalStateException();
+		}
+
+		if(ints == null){
+			return;
 		}
 
 		GL2 gl = GLContext.getCurrent().getGL().getGL2();
@@ -193,6 +205,11 @@ public class BasicGLSLShader implements Shader{
 			logger.severe(message);
 			throw new IllegalStateException();
 		}
+
+		if(vec == null){
+			return;
+		}
+
 		int p = paramCache.getParameter(paramName);
 		if(p == -1)
 			return;
@@ -209,6 +226,11 @@ public class BasicGLSLShader implements Shader{
 			logger.severe(message);
 			throw new IllegalStateException();
 		}
+
+		if(m == null){
+			return;
+		}
+		
 		int p = paramCache.getParameter(paramName);
 		if(p == -1)
 			return;

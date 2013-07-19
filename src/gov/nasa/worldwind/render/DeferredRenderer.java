@@ -11,6 +11,8 @@ public interface DeferredRenderer {
 
 	public void setEnabled(boolean enabled);
 	public boolean isEnabled();
+
+	boolean isSupported(DrawContext dc);
 	
 	public int getColorTexture();
 

@@ -27,11 +27,6 @@ Getting started
 ---------------
 Just type "ant run" and play with the example application!
 
-Known bugs
----------------
-1. Height map files in cache sometimes get corrupted and thus automatically deleted.
-2. Z-buffer fighting appears on some GPU/driver combinations.
-
 Reaching us
 -----------
 Furhter information can be found at the [project's home page](http://gaeaplus.eu) or at info@gaeaplus.eu.

@@ -29,12 +29,12 @@ public class MeasureRenderTime {
 	private static boolean isEnabled = false;
 	private static boolean isMesureGpu = false;
 	
-	private static Stack timeStartStack = new Stack();
+	private static Stack<Long> timeStartStack = new Stack<Long>();
 	private static Stack<String> nameStack = new Stack<String>();
 
 	private static final Logger logger = Logging.logger("MesureRenderTime");
 	
-	public static void startMesure(DrawContext dc, String name){
+	public static void startMeasure(DrawContext dc, String name){
 		if(isEnabled){
 			
 			nameStack.push(name);
@@ -65,7 +65,7 @@ public class MeasureRenderTime {
 		}
 	}
 
-	public static void stopMesure(DrawContext dc){
+	public static void stopMeasure(DrawContext dc){
 		if(isEnabled){
 			String displayString = "";
 			for(String s : nameStack){
@@ -78,7 +78,7 @@ public class MeasureRenderTime {
 			}
 			
 			nameStack.pop();
-			dc.setPerFrameStatistic(PerformanceStatistic.RENDER_TIME_CPU, displayString, System.currentTimeMillis() - (Long)timeStartStack.pop());
+			dc.setPerFrameStatistic(PerformanceStatistic.RENDER_TIME_CPU, displayString, System.currentTimeMillis() - timeStartStack.pop());
 		}
 	}
 
@@ -93,9 +93,11 @@ public class MeasureRenderTime {
 		}
 	
 		for(GpuTimer gpuTimer : gpuTimers){
-			long time = GpuTimer.getTimeRecrusive(dc, gpuTimer);
+			double time = ((double)(GpuTimer.getTimeRecrusive(dc, gpuTimer)))/1000000.0d;
 			String name = gpuTimer.getName();
-			dc.setPerFrameStatistic(PerformanceStatistic.RENDER_TIME_GPU, name, time);
+			if(time > 1.0){
+				dc.setPerFrameStatistic(PerformanceStatistic.RENDER_TIME_GPU, name, time);
+			}
 		}
 		gpuTimers.clear();
 

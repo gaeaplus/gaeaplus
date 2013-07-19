@@ -122,7 +122,7 @@ public class GLRuntimeCapabilities
         if (this.numTextureUnits == 0)
         {
             int[] params = new int[1];
-            gl.glGetIntegerv(GL2.GL_MAX_TEXTURE_UNITS, params, 0);
+            gl.glGetIntegerv(GL2.GL_MAX_TEXTURE_IMAGE_UNITS, params, 0);
             this.numTextureUnits = params[0];
         }
 

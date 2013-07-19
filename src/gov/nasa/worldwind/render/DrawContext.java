@@ -375,6 +375,8 @@ public interface DrawContext extends WWObject, Disposable
 
     /**
      * Adds an {@link gov.nasa.worldwind.render.OrderedRenderable} to the draw context's ordered renderable list.
+	 * By default ordered renderable is treated as textured screen overlay. For different behavior use method with
+	 * <code>RenderAttribute</code> parameter.
      *
      * @param orderedRenderable the ordered renderable to add.
      *
@@ -389,6 +391,8 @@ public interface DrawContext extends WWObject, Disposable
      * renderable as though it is behind all other ordered renderables and ignores the ordered renderable's eye
      * distance. If multiple ordered renderables are added with <code>isBehind</code> specified as <code>true</code>,
      * those ordered renderables are drawn according to the order in which they are added.
+	 * By default ordered renderable is treated as textured screen overlay. For different behavior use method with
+	 * <code>RenderAttribute</code> parameter.
      *
      * @param orderedRenderable the ordered renderable to add.
      * @param isBehind          <code>true</code> to specify that the ordered renderable is behind all other ordered
@@ -396,6 +400,19 @@ public interface DrawContext extends WWObject, Disposable
      *                          eye distance.
      */
     void addOrderedRenderable(OrderedRenderable orderedRenderable, boolean isBehind);
+	
+	//X-START
+	//Vito
+    /**
+     * Adds an {@link gov.nasa.worldwind.render.OrderedRenderable} to the draw context's ordered renderable list.
+     *
+     * @param orderedRenderable the ordered renderable to add.
+     * @param renderAttributes the ordered renderable render attributes.
+     *
+     * @throws IllegalArgumentException if the ordered renderable is null.
+     */
+	void addOrderedRenderable(OrderedRenderable orderedRenderable, RenderAttributes renderAttributes, boolean isBehind);
+	//X-END
 
     /**
      * Adds an {@link gov.nasa.worldwind.render.OrderedRenderable} to the draw context's ordered surface renderable
@@ -909,10 +926,46 @@ public interface DrawContext extends WWObject, Disposable
      */
     void drawNormals(float length, FloatBuffer vBuf, FloatBuffer nBuf);
 
+	//X-START
+	//Vito
+
+    /**
+	 * Returns unordered array of <code>OrderedRenderables</code>.
+	 * This method is used for rendering object without removing them from queue.
+	 * For example rendering objects into shadow map.
+	 * 
+	 * @param renderType specify the type of <code>OrderedRenderable</code>
+     *
+     * @return array of unordered <code>OrderedRenderables</code> with specific type.
+     */
+	public List<OrderedRenderable> getOrderedRenderables(RenderAttributes.RenderType renderType);
+
+	//new parameter RenderAttributes.RenderType added
     /**
      * Returns the next {@link gov.nasa.worldwind.render.OrderedRenderable} on the ordered-renderable priority queue but
      * does not remove it from the queue.
+	 * 
+	 * @param renderType specify the type of <code>OrderedRenderable</code>
      *
+     * @return the next ordered renderable, or null if there are no more ordered renderables on the queue.
+     */
+    OrderedRenderable peekOrderedRenderables(RenderAttributes.RenderType renderType);
+
+    /**
+     * Returns the next {@link gov.nasa.worldwind.render.OrderedRenderable} on the ordered-renderable priority queue and
+     * removes it from the queue.
+	 * 
+	 * @param renderType specify the type of <code>OrderedRenderable</code>
+     *
+     * @return the next ordered renderable, or null if there are no more ordered renderables on the queue.
+     */
+    OrderedRenderable pollOrderedRenderables(RenderAttributes.RenderType renderType);
+
+    /**
+     * Returns the next {@link gov.nasa.worldwind.render.OrderedRenderable} on the ordered-renderable priority queue but
+     * does not remove it from the queue. 
+	 * This method returns only renderables that are categorized as screen overlay (RenderAttribute.RenderType == SCREEN).
+	 * 
      * @return the next ordered renderable, or null if there are no more ordered renderables on the queue.
      */
     OrderedRenderable peekOrderedRenderables();
@@ -920,11 +973,13 @@ public interface DrawContext extends WWObject, Disposable
     /**
      * Returns the next {@link gov.nasa.worldwind.render.OrderedRenderable} on the ordered-renderable priority queue and
      * removes it from the queue.
-     *
+	 * This method returns only renderables that are categorized as screen overlay (RenderAttribute.RenderType == SCREEN).
+	 * 
      * @return the next ordered renderable, or null if there are no more ordered renderables on the queue.
      */
     OrderedRenderable pollOrderedRenderables();
-
+	//X-END
+	
     /**
      * Returns a {@link Terrain} object that uses the current sector geometry or the current globe to compute surface
      * points.
@@ -980,7 +1035,12 @@ public interface DrawContext extends WWObject, Disposable
     DeclutteringTextRenderer getDeclutteringTextRenderer();
 
     /** Filter overlapping text from the ordered renderable list. */
-    void applyClutterFilter();
+	//X-START
+	//Vito
+	//new parameter RenderAttributes.RenderType added
+    void applyClutterFilter(RenderAttributes.RenderType renderType);
+	//X-END
+
 //
 //    void applyGroupingFilters();
 //
@@ -1003,6 +1063,40 @@ public interface DrawContext extends WWObject, Disposable
     ClutterFilter getClutterFilter();
     
     //X-START
+
+	/**
+	 * Set terrain topology detail hint.
+	 * Values greater than zero increase the quality. 
+	 * Values less than zero decrease the quality.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	void setTerrainTopologyDetail(double detailHint);
+
+	/**
+	 * Set terrain images detail hint (resolution).
+	 * Values greater than zero increase the resolution. 
+	 * Values less than zero decrease the resolution.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	void setTerrainTexturesDetail(double detailHint);
+
+	/**
+	 * Get terrain topology detail hint.
+	 * 
+	 * @return detail hint in range from -1, 1. Default value is 0.
+	 */
+	double getTerrainTopologyDetail();
+	
+	/**
+	 * Get terrain textures detail hint.
+	 * 
+	 * @return detail hint in range from -1, 1. Default value is 0.
+	 */
+	double getTerrainTexturesDetail();
     
     /**
      * Returns true if the recording mode is active, otherwise return false
@@ -1111,7 +1205,7 @@ public interface DrawContext extends WWObject, Disposable
      */
 	float getExposure();
    
-	void setSunPosition(Vec4 sunPosition);
-	Vec4 getSunPosition();
+	void setSunlightDirection(Vec4 sunlightDirection);
+	Vec4 getSunlightDirection();
     //X-END
 }

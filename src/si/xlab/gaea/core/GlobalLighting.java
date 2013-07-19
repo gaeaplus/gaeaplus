@@ -6,8 +6,10 @@ import gov.nasa.worldwind.layers.Layer;
 import gov.nasa.worldwind.render.DrawContext;
 import si.xlab.gaea.core.shaders.Shader;
 import gov.nasa.worldwind.util.FrameBuffer;
+import gov.nasa.worldwind.util.Logging;
 import java.awt.Rectangle;
 import java.nio.FloatBuffer;
+import java.util.logging.Logger;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import si.xlab.gaea.core.layers.atm.Atmosphere;
@@ -252,7 +254,7 @@ public class GlobalLighting
 //			frambuffer.attachTexture(dc, 0, GL.GL_COLOR_ATTACHMENT1_EXT, 0);
 
             frambuffer.releaseTextures(dc);
-            frambuffer.attachTexture(dc, finalTextureHDR[0], GL.GL_COLOR_ATTACHMENT0, 0);
+            frambuffer.attachTexture2D(dc, GL.GL_COLOR_ATTACHMENT0, finalTextureHDR[0], GL.GL_TEXTURE_2D);
             frambuffer.setDrawBuffers(dc, new int[]{GL.GL_COLOR_ATTACHMENT0});
 			frambuffer.setReadBuffers(dc, GL.GL_COLOR_ATTACHMENT0);
             gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
@@ -386,7 +388,7 @@ public class GlobalLighting
         GL2 gl2 = dc.getGL().getGL2();
         dc.getFramebufferController().push();
         
-        if(!this.frambufferIntensity.hasRenderBuffersAttached()){
+        if(!this.frambufferIntensity.hasRenderBufferAttached()){
             this.frambufferIntensity.bind(dc);
             this.frambufferIntensity.attachRenderbuffer(dc, 32, 32, GL.GL_RGBA32F, GL.GL_COLOR_ATTACHMENT0, 0);   
         }
@@ -474,12 +476,11 @@ public class GlobalLighting
 
         dc.getView().pushReferenceCenter(dc, Vec4.ZERO);
 
-        shader.setParam("colorSampler", 0);
         shader.setParam("depthSampler", 2);
         shader.setParam("transmittanceSampler", 4);
         shader.setParam("inscatterSampler", 6);
 
-        shader.setParam("lightDirection", dc.getSunPosition());
+        shader.setParam("lightDirection", dc.getSunlightDirection());
         shader.setParam("cameraWorldPosition", dc.getView().getEyePoint());
         shader.setParam("exposure", new float[]
                 {
@@ -512,7 +513,7 @@ public class GlobalLighting
             shader.setParam("shadowSampler", 3);
         }
 
-        shader.setParam("lightDirection", dc.getSunPosition());
+        shader.setParam("lightDirection", dc.getSunlightDirection());
         shader.setParam("lightColor", simpleSunColor(dc));
         shader.setParam("colorSampler", 0);
         shader.setParam("normalSampler", 1);
@@ -565,7 +566,7 @@ public class GlobalLighting
         shader.setParam("usageSampler", 7);
         shader.setParam("materialSampler", 9);
 
-        shader.setParam("lightDirection", dc.getSunPosition());
+        shader.setParam("lightDirection", dc.getSunlightDirection());
         shader.setParam("exposure", new float[]
                 {
                     calcExposure(dc)
@@ -596,7 +597,7 @@ public class GlobalLighting
         double cR = eye.getLength3();
 
         double maxAngle = Math.PI - Math.asin(eR / cR);
-        double angle = eye.angleBetween3(dc.getSunPosition().getNegative3()).radians;
+        double angle = eye.angleBetween3(dc.getSunlightDirection().getNegative3()).radians;
 
         double pow = 4.5;
         double fac = 0.65;
@@ -613,9 +614,9 @@ public class GlobalLighting
         float[] color = new float[3];
 
         float tmp = 1.0f;
-        if (dc.getSunPosition() != null && dc.getView() != null && dc.getView().getCenterPoint() != null)
+        if (dc.getSunlightDirection() != null && dc.getView() != null && dc.getView().getCenterPoint() != null)
         {
-            tmp = (float) (dc.getSunPosition().getNegative3().normalize3().dot3(dc.getView().getCenterPoint().normalize3()));
+            tmp = (float) (dc.getSunlightDirection().getNegative3().normalize3().dot3(dc.getView().getCenterPoint().normalize3()));
         }
 
         color[0] = 1.0f;
@@ -659,7 +660,8 @@ public class GlobalLighting
         public Layer getHeightLayer(DrawContext dc){
 			if(heightMap == null){
 				heightMap = new HeightMapLayer();
-				heightMap.setRetainLevelZeroTiles(true);
+				heightMap.setRetainLevelZeroTiles(false);
+				heightMap.setForceLevelZeroLoads(true);
 				heightMap.setDetailHint(0.25);
 				heightMap.setUseMipMaps(false);
 				heightMap.setUseTransparentTextures(false);

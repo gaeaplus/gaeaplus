@@ -3,7 +3,7 @@ uniform float u_drawDistance;
 
 varying vec4 v_texCoord;
 varying vec4 v_texRecCoord;
-varying float v_color;
+//varying float v_color;
 
 #ifdef _VERTEX_
 void main(){
@@ -12,9 +12,9 @@ void main(){
 	v_texRecCoord = gl_TextureMatrix[1] * gl_MultiTexCoord1;
 
 	//set vertex alpha
-	float verDist = length((gl_ModelViewMatrix * gl_Vertex).xyz);
-	float alpha = smoothstep((1.0/2.0) * u_drawDistance, u_drawDistance, verDist);
-	v_color = (1.0 - alpha) * gl_Color.a;
+	//float verDist = length((gl_ModelViewMatrix * gl_Vertex).xyz);
+	//float alpha = smoothstep((1.0/2.0) * u_drawDistance, u_drawDistance, verDist);
+	//v_color = (1.0 - alpha) * gl_Color.a;
 }
 
 #else
@@ -37,6 +37,7 @@ void main(){
 			|| v_texRecCoord.y < min || v_texRecCoord.y > max){discard;}
 	}
 
-	gl_FragColor = vec4(color.rgb, color.a * v_color);
+	//gl_FragColor = vec4(color.rgb, color.a * v_color);
+	gl_FragColor = color;
 }
 #endif

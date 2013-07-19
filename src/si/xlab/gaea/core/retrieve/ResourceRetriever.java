@@ -11,7 +11,7 @@ import java.net.URL;
  * For example, in a NetBeans-based application, a custom retriever is needed
  * that can access all NetBeans modules.
  * 
- * The default behaviour is OK if the whole application uses a single class loader. * 
+ * The default behaviour is OK if the whole application uses a single class loader.
  * 
  * To change behaviour:
  * - subclass this

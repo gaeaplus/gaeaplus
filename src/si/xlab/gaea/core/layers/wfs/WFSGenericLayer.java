@@ -57,8 +57,9 @@ public class WFSGenericLayer extends AbstractWFSLayer
     
     protected SurfaceObjectRenderer surfaceObjectRenderer; //surface objects renderer
     protected boolean dynamicIconScaling = true;
-    private final boolean drawLineLabels;
-    private final String lineLabelGMLTag;
+    private boolean drawLineLabels;
+
+    protected String lineLabelGMLTag;
     private String featureDescriptionFormat;
     
     public WFSGenericLayer(WFSService wfsService,
@@ -140,6 +141,11 @@ public class WFSGenericLayer extends AbstractWFSLayer
         surfaceObjectRenderer.redraw();
 		this.firePropertyChange(AVKey.LAYER, null, this);
     }
+
+	public void setLineLabelTag(String gmlTag){
+		this.lineLabelGMLTag = gmlTag;
+		this.drawLineLabels = true;
+	}
     
     /*
      * Sets the format of feature description.
@@ -375,7 +381,7 @@ public class WFSGenericLayer extends AbstractWFSLayer
             }
         }
         
-        KMLStyle style = null;
+        KMLStyle style = getDefaultStyle();
         if (feature.getStyle() != null)
         { 
             style = getStyle(feature.getStyle());
@@ -560,7 +566,6 @@ public class WFSGenericLayer extends AbstractWFSLayer
             return;
         }
         super.doPreRender(dc);
-        this.labelRenderer.preRender(dc);
 	}
 
     @Override
@@ -580,7 +585,7 @@ public class WFSGenericLayer extends AbstractWFSLayer
         if(dc.isShadowMode()){
             return;
         }
-        this.labelRenderer.render(dc);
+		dc.addOrderedRenderable(this.labelRenderer);
     }
     
     @Override

@@ -685,7 +685,13 @@ public class RectangularTessellator extends WWObjectImpl implements Tessellator
         // Compute the log10 detail target for the specified tile. Apply the elevation model's detail hint to the
         // default detail target.
 
-        return DEFAULT_LOG10_RESOLUTION_TARGET + dc.getGlobe().getElevationModel().getDetailHint(tile.sector);
+		//X-START
+		//Vito
+		//detail hint added
+        return DEFAULT_LOG10_RESOLUTION_TARGET + dc.getTerrainTopologyDetail()/3.0 + dc.getGlobe().getElevationModel().getDetailHint(tile.sector);
+		//old
+        //return DEFAULT_LOG10_RESOLUTION_TARGET + dc.getGlobe().getElevationModel().getDetailHint(tile.sector);
+		//X-END
     }
 
     protected RectTile[] split(DrawContext dc, RectTile tile)

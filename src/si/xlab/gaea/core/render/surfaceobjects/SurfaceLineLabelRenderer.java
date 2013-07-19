@@ -1,19 +1,18 @@
 package si.xlab.gaea.core.render.surfaceobjects;
 
 import gov.nasa.worldwind.render.DrawContext;
-import gov.nasa.worldwind.render.PreRenderable;
-import gov.nasa.worldwind.render.Renderable;
+import gov.nasa.worldwind.render.OrderedRenderable;
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
-import si.xlab.gaea.core.render.surfaceobjects.SurfaceLineSegment;
 
 /**
  *
  * @author Vito Čuček <vito.cucek@xlab.si / vito.cucek@gmail.com>
  */
-public class SurfaceLineLabelRenderer implements Renderable, PreRenderable{
+public class SurfaceLineLabelRenderer implements OrderedRenderable {
 
     private final List<SurfaceLineLabel> floatingLabels = new ArrayList<SurfaceLineLabel>();
     private final HashMap<Integer, SurfaceLineSegment> renderedLines = new HashMap<Integer, SurfaceLineSegment>();
@@ -26,7 +25,11 @@ public class SurfaceLineLabelRenderer implements Renderable, PreRenderable{
         this.floatingLabels.add(labels);
     }
 
+	@Override
     public void render(DrawContext dc){
+
+		calc(dc);
+		
         for(SurfaceLineLabel fl : floatingLabels){
 
             if(fl == null){
@@ -40,7 +43,7 @@ public class SurfaceLineLabelRenderer implements Renderable, PreRenderable{
         floatingLabels.clear();
     }
 
-    public void preRender(DrawContext dc){
+    public void calc(DrawContext dc){
         if(System.currentTimeMillis() - lastPrerender > 1000){
             for(SurfaceLineLabel fl : floatingLabels){
 
@@ -69,4 +72,13 @@ public class SurfaceLineLabelRenderer implements Renderable, PreRenderable{
         //}
         
     }
+
+	@Override
+	public double getDistanceFromEye() {
+		return Double.MAX_VALUE;
+	}
+
+	@Override
+	public void pick(DrawContext dc, Point pickPoint) {
+	}
 }

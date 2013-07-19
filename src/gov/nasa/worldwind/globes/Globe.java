@@ -29,7 +29,8 @@ public interface Globe extends WWObject, Extent
 	//Vito
 	
 	/**
-     * Set time.
+     * Set time. 
+	 * Null calendar time indicates that the sun should follow the camera.
      */
 	void setSunlightFromTime(Calendar time);
 
@@ -38,7 +39,7 @@ public interface Globe extends WWObject, Extent
      *
      * @return sun direction.
      */
-	Vec4 getSunDirection();
+	Vec4 getZenithPosition();
 	//X-END
 	
     /**

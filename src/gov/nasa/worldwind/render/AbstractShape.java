@@ -22,6 +22,11 @@ import javax.media.opengl.*;
 import javax.xml.stream.*;
 import java.awt.*;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import si.xlab.gaea.core.shaders.Shader;
 
 /**
  * Provides a base class form several geometric {@link gov.nasa.worldwind.render.Renderable}s. Implements common
@@ -1034,6 +1039,7 @@ public abstract class AbstractShape extends WWObjectImpl
         this.beginDrawing(dc, 0);
         try
         {
+			this.mustApplyTexture(dc);
             this.doDrawOrderedRenderable(dc, this.pickSupport);
 
             if (this.isEnableBatchRendering())

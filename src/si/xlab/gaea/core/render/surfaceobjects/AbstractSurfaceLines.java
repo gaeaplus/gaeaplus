@@ -44,12 +44,17 @@ public abstract class AbstractSurfaceLines extends SurfaceObject implements GLDi
     protected float lineWidthBack = 4;
     protected float lineWidthBackBase = 4;
     protected List<SurfaceLineSegment> allSegments;
-    protected FloatBuffer vboBuffer;
+    
+	protected FloatBuffer vboBuffer;
     protected ByteBuffer vboBufferColor;
-    protected IntBuffer[] vboBufferI = new IntBuffer[NUMBER_OF_LEVELS];
+    protected FloatBuffer vboBufferParam;
+
     protected int[] vboV = new int[1];
     protected int[] vboI = new int[NUMBER_OF_LEVELS];
     protected int[] vboC = new int[1];
+    protected int[] vboP = new int[1];
+	
+    protected IntBuffer[] vboBufferI = new IntBuffer[NUMBER_OF_LEVELS];
     protected int[] numberOfPoints = new int[NUMBER_OF_LEVELS];
     protected int currentLevel = 0;
     private boolean readyToRender;
@@ -319,6 +324,7 @@ public abstract class AbstractSurfaceLines extends SurfaceObject implements GLDi
         int size = getVertexCount(segments);
         vboBuffer = Buffers.newDirectFloatBuffer(size * 2);
         vboBufferColor = Buffers.newDirectByteBuffer(size * 4);
+        vboBufferParam = Buffers.newDirectFloatBuffer(size * 2);
 
         for (SurfaceLineSegment segment : segments)
         {
@@ -327,6 +333,7 @@ public abstract class AbstractSurfaceLines extends SurfaceObject implements GLDi
                 //put one latlon in buffer
                 putBuffer(vboBuffer, ll);
                 putBufferColor(vboBufferColor, segment.getStyle());
+                putBufferData(vboBufferParam, segment.getStyle());
             }
         }
 
@@ -424,10 +431,10 @@ public abstract class AbstractSurfaceLines extends SurfaceObject implements GLDi
         if (s != null)
         {
             Color c = KMLStyleFactory.decodeHexToColor(s.getLineStyle().getColor());
-            buffer.put((byte) (c.getRed() & 0xFF));
-            buffer.put((byte) (c.getGreen() & 0xFF));
-            buffer.put((byte) (c.getBlue() & 0xFF));
-            buffer.put((byte) (c.getAlpha() & 0xFF));
+            buffer.put((byte) (c.getRed()/2));
+            buffer.put((byte) (c.getGreen()/2));
+            buffer.put((byte) (c.getBlue()/2));
+            buffer.put((byte) (c.getAlpha()/2));
         } else {
             for (float comp: color)
             {
@@ -435,6 +442,17 @@ public abstract class AbstractSurfaceLines extends SurfaceObject implements GLDi
             }
         }
     }
+
+	private void putBufferData(FloatBuffer buffer, KMLStyle style){
+		if(style != null && style.getLineStyle() != null){
+        	buffer.put(style.getLineStyle().getWidth().floatValue());
+        	buffer.put(0.0f);
+		}
+		else{
+			buffer.put(this.lineWidth);
+        	buffer.put(0.0f);
+		}
+	}
 
     private void doVBO(DrawContext dc)
     {
@@ -461,10 +479,23 @@ public abstract class AbstractSurfaceLines extends SurfaceObject implements GLDi
         gl.glBufferData(GL.GL_ARRAY_BUFFER, vboBufferColor.limit()
                 * Buffers.SIZEOF_BYTE, vboBufferColor.rewind(), GL.GL_STATIC_DRAW);
 
+		if (!gl.glIsBuffer(vboP[0]))
+        {
+            gl.glGenBuffers(1, vboP, 0);
+        }
+        gl.glBindBuffer(GL.GL_ARRAY_BUFFER, vboP[0]);
+        gl.glBufferData(GL.GL_ARRAY_BUFFER, vboBufferParam.limit()
+                * Buffers.SIZEOF_FLOAT, vboBufferParam.rewind(), GL.GL_STATIC_DRAW);
+
         gl.glBindBuffer(GL.GL_ARRAY_BUFFER, 0);
 
         vboBuffer.clear();
-        vboBuffer = null;
+		vboBufferColor.clear();
+		vboBufferParam.clear();
+        
+		vboBuffer = null;
+		vboBufferColor = null;
+		vboBufferParam = null;
 
         for (int level = 0; level < NUMBER_OF_LEVELS; level++)
         {

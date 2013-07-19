@@ -196,27 +196,24 @@ public abstract class SurfaceTileRenderer implements Disposable
                 {
                     gl.glActiveTexture(GL.GL_TEXTURE0);
 
-					//X-START
-					//Vito
-					//set some shader parameters if using shaders.
-					//TODO: optimize!
-					if(dc.getShaderContext().getCurrentShader() != null && tile instanceof TextureTile){
-						TextureTile tt = null;
-						tt = (TextureTile)tile;
-                    
-						Shader shader = dc.getShaderContext().getCurrentShader();
-						shader.setParam("colorSampler", 0);
-						shader.setParam("exaggeration", new float[]{(float)dc.getVerticalExaggeration()});
-                    	shader.setParam("texelSize", new float[]{(float)(dc.getGlobe().getRadius() * tt.getLevel().getTexelSize())});
-                    	shader.setParam("texelScale", new float[]{1.0f, 1.0f});
-                    	shader.setParam("sector", new float[]{(float)tt.getSector().getMinLatitude().radians,
-                                                              (float)tt.getSector().getMaxLatitude().radians,
-                                                              (float)tt.getSector().getMinLongitude().radians,
-                                                              (float)tt.getSector().getMaxLongitude().radians});
-					}
-					//X-END
+			//X-START
+			//Vito
+			//set some shader parameters if using shaders.
+			//TODO: optimize!
+			if (dc.getShaderContext().getCurrentShader() != null && tile instanceof TextureTile) {
+				TextureTile tt = null;
+				tt = (TextureTile) tile;
 
-                    if (tile.bind(dc))
+				Shader shader = dc.getShaderContext().getCurrentShader();
+				shader.setParam("texelSize", new float[]{(float) (dc.getGlobe().getRadius() * tt.getLevel().getTexelSize())});
+				shader.setParam("sector", new float[]{(float) tt.getSector().getMinLatitude().radians,
+						(float) tt.getSector().getMaxLatitude().radians,
+						(float) tt.getSector().getMinLongitude().radians,
+						(float) tt.getSector().getMaxLongitude().radians});
+			}
+			//X-END
+
+			if (tile.bind(dc))
                     {
                         gl.glMatrixMode(GL2.GL_TEXTURE);
                         gl.glLoadIdentity();

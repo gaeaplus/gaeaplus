@@ -3,8 +3,8 @@ package gov.nasa.worldwind.util;
 import gov.nasa.worldwind.render.DrawContext;
 import java.util.HashSet;
 import java.util.logging.Logger;
+import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
-import javax.media.opengl.GL3;
 
 /**
  *
@@ -14,17 +14,19 @@ public class FrameBuffer implements GLDisposable{
 
 	private int id;
 	
-	private boolean hasTexturesAttached = false;
 	private boolean hasRenderbufferAttached = false;
 
+	private HashSet<Integer> usedTextureAttachements = new HashSet<Integer>();
     private HashSet<RenderBuffer> renderBuffers = new HashSet<RenderBuffer>();
 
 	private static final Logger logger = Logging.logger("gov.nasa.worldwind.util.Framebuffer");
 
-	public FrameBuffer()
-	{
-	}
-
+	/**
+	 * 
+	 * Get OpenGL ID of the <code>FrameBuffer<\code>.
+	 * 
+	 * @return OpenGL id of the <code>FrameBuffer<\code>.
+	 */
 	public int getID(){
 		return this.id;
 	}
@@ -35,11 +37,15 @@ public class FrameBuffer implements GLDisposable{
 		//create fbo in graphics device
 		int[] tmpId = new int[1];
 		gl.glGenFramebuffers(1, tmpId, 0);
-		this.hasTexturesAttached = false;
 		this.hasRenderbufferAttached = false;
 		return tmpId[0];
 	}
 	
+	/**
+	 * Bind frame-buffer to current GL canvas.
+	 * 
+	 * @param dc is <code>DrawContext</code> 
+	 */
 	public void bind(DrawContext dc){
 		
 		GL2 gl = dc.getGL().getGL2();
@@ -56,28 +62,80 @@ public class FrameBuffer implements GLDisposable{
 		dc.getFramebufferController().setCurrent(this);
 	}
 
-	public boolean hasTexturesAttached(){
-		return this.hasTexturesAttached;	
+	/**
+	 * 
+	 * Indicate if <code>FrameBuffer<\code> has one or more textures attached.
+	 * 
+	 * @return true if it has texture attached.
+	 */
+	public boolean hasTextureAttached(){
+		return !this.usedTextureAttachements.isEmpty();	
 	}
 
-    public boolean hasRenderBuffersAttached(){
+	/**
+	 * 
+	 * Indicate if <code>FrameBuffer<\code> has one or more textures attached.
+	 * 
+	 * @return true if it has texture attached.
+	 */
+	public boolean hasTextureAttached(int attachement){
+		return this.usedTextureAttachements.contains(attachement);	
+	}
+	
+	/**
+	 * 
+	 * Indicate if <code>FrameBuffer<\code> has one or more renderbuffers attached.
+	 * 
+	 * @return true if it has texture attached.
+	 */
+    public boolean hasRenderBufferAttached(){
         return this.hasRenderbufferAttached;
     }
 
-	public void attachTexture(DrawContext dc, int texture, int target, int mipmapLevel){
+	/**
+	 * 
+	 * Attaches texture to frame-buffer.
+	 * 
+	 * @param texture
+	 *			Specifies the texture object to attach to the framebuffer attachment point named by attachment.
+	 * @param attachement
+	 *			Specifies the attachment point of the framebuffer. attachment must be
+	 *			GL_COLOR_ATTACHMENTi, GL_DEPTH_ATTACHMENT,
+	 *			GL_STENCIL_ATTACHMENT or GL_DEPTH_STENCIL_ATTACHMENT.
+	 * @param mipmapLevel
+	 *			Specifies the mipmap level of texture to attach.
+	 */
+	public void attachTexture(DrawContext dc, int texture, int attachement, int mipmapLevel){
 
 		if(dc.getFramebufferController().getCurrent() != this){
 			logger.severe("attachTexture(): can't attach texture - Framebuffer not bound!");	
 			throw new IllegalStateException("can't attach texture - Framebuffer not bound!");
 		}
 
-		dc.getGL().getGL3().glFramebufferTexture(GL2.GL_FRAMEBUFFER, target, texture, mipmapLevel);
+		dc.getGL().getGL3().glFramebufferTexture(GL2.GL_FRAMEBUFFER, attachement, texture, mipmapLevel);
 		
 		if(texture != 0){
-			this.hasTexturesAttached = true;
+			usedTextureAttachements.add(attachement);
+		}
+		else{
+			usedTextureAttachements.remove(attachement);
 		}
 	}
 
+	/**
+	 * 
+	 * Attaches texture to frame-buffer.
+	 * 
+	 * @param attachement
+	 *				Specifies the attachment point of the framebuffer. Attachment must be
+     *              GL_COLOR_ATTACHMENTi, GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT or GL_DEPTH_STENCIL_ATTACHMENT.
+	 * @param texture
+	 *				Specifies the texture object to attach to the framebuffer attachment point named by attachment.
+	 * @param textureTarget
+	 *				Specifies the texture target. Must be one of the following symbolic constants: GL_TEXTURE_2D,
+	 *				GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+	 *				GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
+	 */
 	public void attachTexture2D(DrawContext dc, int attachement, int texture, int textureTarget){
         
 		if(dc.getFramebufferController().getCurrent() != this){
@@ -88,10 +146,29 @@ public class FrameBuffer implements GLDisposable{
 		dc.getGL().glFramebufferTexture2D(GL2.GL_FRAMEBUFFER, attachement, textureTarget, texture, 0);
 		
 		if(texture != 0){
-			this.hasTexturesAttached = true;
+			usedTextureAttachements.add(attachement);
+		}
+		else{
+			usedTextureAttachements.remove(attachement);
 		}
 	}
 
+	/**
+	 * 
+	 * Attaches render-buffer to frame-buffer.
+	 * 
+	 * @param width is width in pixels
+	 * @param height is height in pixels
+	 * @param internalFormat
+	 *			Specifies the color-renderable, depth-renderable, 
+	 *			or stencil-renderable format of the render-buffer.
+	 *			For example: GL_RGBA4, GL_RGB565, GL_RGB5_A1, GL_DEPTH_COMPONENT16, or GL_STENCIL_INDEX8.
+	 * @param attachement
+	 *			Specifies the attachment point to which render-buffer should be attached. 
+	 *			Must be one of the following symbolic constants: GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, or GL_STENCIL_ATTACHMENT.
+	 * @param fsaa
+	 *			Specifies full screen anti-aliasing factor.
+	 */
     public void attachRenderbuffer(DrawContext dc, int width, int height, int internalFormat, int attachement, int fsaa){
         GL2 gl = dc.getGL().getGL2();
 
@@ -114,14 +191,13 @@ public class FrameBuffer implements GLDisposable{
             logger.severe(str);
             throw new IllegalStateException(str);
         }
-
-		GL3 gl = dc.getGL().getGL3(); 
-		gl.glFramebufferTexture(GL2.GL_FRAMEBUFFER, GL2.GL_COLOR_ATTACHMENT0, 0, 0);
-		gl.glFramebufferTexture(GL2.GL_FRAMEBUFFER, GL2.GL_COLOR_ATTACHMENT1, 0, 0);
-		gl.glFramebufferTexture(GL2.GL_FRAMEBUFFER, GL2.GL_COLOR_ATTACHMENT2, 0, 0);
-		gl.glFramebufferTexture(GL2.GL_FRAMEBUFFER, GL2.GL_COLOR_ATTACHMENT3, 0, 0);
-		gl.glFramebufferTexture(GL2.GL_FRAMEBUFFER, GL2.GL_DEPTH_ATTACHMENT, 0, 0);
-		this.hasTexturesAttached = false;
+		
+		GL2 gl = dc.getGL().getGL2();
+		
+		for(int attachement : usedTextureAttachements){
+			gl.glFramebufferTexture2D(GL2.GL_FRAMEBUFFER, attachement, GL.GL_TEXTURE_2D, 0, 0);
+		}
+		usedTextureAttachements.clear();
 	}
 
 	public void releaseRenderbuffers(DrawContext dc){
@@ -242,6 +318,7 @@ public class FrameBuffer implements GLDisposable{
 		}
 	}
 
+	@Override
 	public void dispose(GL2 gl)
 	{
 		if(gl.glIsFramebuffer(id)){

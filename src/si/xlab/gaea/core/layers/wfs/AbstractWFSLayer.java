@@ -47,7 +47,7 @@ abstract public class AbstractWFSLayer extends AbstractLayer
     public static final Angle DEFAULT_TILE_DELTA = Angle.fromDegrees(0.1);
     public static final Angle TILE_DELTA_SINGLE_TILE_FOR_SLOVENIA = Angle.fromDegrees(3.45);
             
-	private static final long DEFAULT_WFS_CACHE_SIZE = 200*1000*1000;
+	private static final long DEFAULT_WFS_CACHE_SIZE = 500*1000*1000;
 
     private final WFSService wfsService;
     private final WFSNavigationTile rootTile;
@@ -55,6 +55,8 @@ abstract public class AbstractWFSLayer extends AbstractLayer
     private Vec4 referencePoint;
     private final Object fileLock = new Object();
     private final Object loadFlushLock = new Object();
+
+	private double maxVisibleDistance = Double.MAX_VALUE;
 
     private KMLStyle defaultStyle; //the style used to draw features that don't have a style attribute themselves in the GML
     
@@ -91,6 +93,10 @@ abstract public class AbstractWFSLayer extends AbstractLayer
             logger.log(Level.WARNING, "Layer default style cannot be null - keeping the old default style instead.");
         }
     }
+
+	public void setMaxVisibleDistance(double distance){
+		this.maxVisibleDistance = distance;
+	}
 
     public KMLStyle getDefaultStyle()
     {
@@ -208,6 +214,10 @@ abstract public class AbstractWFSLayer extends AbstractLayer
 
         for (WFSBaseTile tile : rootTile.getVisibleBaseTiles(dc))
         {
+			if(!tile.isVisible(dc, 0.0, maxVisibleDistance * maxVisibleDistance)){
+				continue;
+			}
+			
             try
             {
                 if (tile.isTileInMemory())

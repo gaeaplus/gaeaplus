@@ -40,7 +40,7 @@ public class EllipsoidalGlobe extends WWObjectImpl implements Globe
 
 	//X-START
 	//Vito
-	private Vec4 sunDirection;
+	private Vec4 zenithPositionOnGlobe = null;
 	//X-END
 
     /**
@@ -158,17 +158,22 @@ public class EllipsoidalGlobe extends WWObjectImpl implements Globe
 	//X-START
 	//Vito
 	@Override
-	public Vec4 getSunDirection(){
-		return this.sunDirection;
+	public Vec4 getZenithPosition(){
+		return this.zenithPositionOnGlobe;
 	}
-	
+
 	@Override
 	public void setSunlightFromTime(Calendar time){
-		this.sunDirection = getSunDirection(time);
+		if(time != null){
+			this.zenithPositionOnGlobe = calcZenithPosition(time);
+		}
+		else{
+			this.zenithPositionOnGlobe = null;
+		}
 		this.firePropertyChange(AVKey.REPAINT, null, null);
 	}
 
-	private Vec4 getSunDirection(Calendar time)
+	private Vec4 calcZenithPosition(Calendar time)
 	{
 		// Main variables
 		double elapsedJulianDays;
@@ -244,7 +249,7 @@ public class EllipsoidalGlobe extends WWObjectImpl implements Globe
 
 		time.setTimeZone(TimeZone.getDefault());
 
-		Angle lat = Angle.fromRadiansLatitude(declination).multiply(-1.0d);;
+		Angle lat = Angle.fromRadiansLatitude(declination).multiply(-1.0d);
 		Angle lon = Angle.fromRadiansLongitude(longitude);
 
 		return computePointFromPosition(lat, lon, 0.0d);

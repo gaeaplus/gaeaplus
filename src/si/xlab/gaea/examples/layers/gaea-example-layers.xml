@@ -11,18 +11,17 @@
 <!--alternate configuration document-->
 <!--See the javadoc for the Configuration class for details-->
 <LayerList>
-    <Layer className="gov.nasa.worldwind.layers.StarsLayer">
-        <!--Individual properties can be specified within Layer entries, like this:-->
-        <Property name="Name" value="Stars"/>
-    </Layer>
-    <Layer className="gov.nasa.worldwind.layers.SkyGradientLayer"/>
     <Layer className="gov.nasa.worldwind.layers.Earth.BMNGOneImage">
-        <Property name="MinActiveAltitude" value="3e6"/>
+        <Property name="MinActiveAltitude" value="1e6"/>
     </Layer>
     <Layer href="config/Earth/BMNGWMSLayer2.xml" actuate="onLoad"/>
     <Layer href="config/Earth/LandsatI3WMSLayer2.xml" actuate="onLoad"/>
-    <Layer href="config/Earth/MSVirtualEarthAerialLayer.xml" actuate="onRequest"/>
     <Layer href="config/Earth/BingImagery.xml" actuate="onRequest"/>
+
+    <Layer className="si.xlab.gaea.core.layers.elev.ElevationLayer" actuate="onRequest">
+        <Property name="Name" value="Height-map (run-time calculated)"/>
+    </Layer>
+
     <Layer className="gov.nasa.worldwind.layers.Earth.CountryBoundariesLayer" actuate="onRequest"/>
     <Layer href="config/Earth/OpenStreetMap.xml" actuate="onRequest"/>
     
@@ -30,10 +29,16 @@
     <Layer className="si.xlab.gaea.examples.layers.FloodingSlovenia" actuate="onRequest"/>
     <Layer className="si.xlab.gaea.examples.layers.HikingPathsSlovenia" actuate="onRequest"/>
     <Layer className="si.xlab.gaea.examples.layers.ProtectedAreasSlovenia" actuate="onRequest"/>
+    <Layer className="si.xlab.gaea.examples.layers.EnglandRoads" actuate="onRequest"/>
+
+    <Layer className="si.xlab.gaea.examples.layers.KmlBuildingsLayer" actuate="onRequest">
+        <Property name="Name" value="Buildings in Torrent, Spain"/>
+    </Layer>
 
     <Layer className="si.xlab.gaea.core.layers.elev.SlopeLayer" actuate="onRequest">
         <Property name="Name" value="Steep Areas (run-time calculated)"/>
     </Layer>
+
     
     <Layer className="gov.nasa.worldwind.layers.Earth.NASAWFSPlaceNameLayer"/>
     <Layer className="gov.nasa.worldwind.layers.WorldMapLayer"/>

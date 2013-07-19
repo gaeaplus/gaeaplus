@@ -9,6 +9,7 @@ import gov.nasa.worldwind.Disposable;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,16 +29,20 @@ public class BasicGLSLCompiler implements Disposable{
 	protected static final Logger logger = Logger.getLogger(BasicGLSLCompiler.class.getName());
 
 	private String shadersSupportedString = "";
+	private float shadersVersion = 0.0f;
+	private boolean init = false;
 
-	public BasicGLSLCompiler()
-	{
+	public boolean isShaderVersionSupported(float version){
+		return (version <= this.shadersVersion) ? true : false;
 	}
 
-	private void defineSupportedShaders(){
+	public void defineSupportedShaders(GL gl){
+
+		if(init){
+			return;
+		}
 
 		String out = "";
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
 
 		String fullShaderVeersion = gl.glGetString(GL2.GL_SHADING_LANGUAGE_VERSION);
 		float shaderVeersion = Float.parseFloat(fullShaderVeersion.split(" ")[0]);
@@ -53,10 +58,14 @@ public class BasicGLSLCompiler implements Disposable{
 		if(1.5 <= shaderVeersion)
 			out += "#define v150\n";
 
+		this.shadersVersion = shaderVeersion;
+
 		String infoMessage = "Supported shader profiles: \n" + out;
 		logger.info(infoMessage);
 
 		this.shadersSupportedString = out;
+
+		init = true;
 	}
 
 	private boolean checkProgramError(GL2 gl, int programId){
@@ -281,10 +290,6 @@ public class BasicGLSLCompiler implements Disposable{
 			String startString = shader.getRuntimeCode();
 
 			this.printGLLog(gl, glu);
-
-			if (this.shadersSupportedString.isEmpty()) {
-				this.defineSupportedShaders();
-			}
 
 			int programId = gl.glCreateProgram();
 			if (!gl.glIsProgram(programId)) {

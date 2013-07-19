@@ -39,7 +39,7 @@ public class BloomEffect extends AbstractEffect{
 
 		//generate bloom mask
 //		framebuffer.releaseTextures(dc);
-		framebuffer.attachTexture(dc, textureBloom, GL2.GL_COLOR_ATTACHMENT0, 0);
+		framebuffer.attachTexture2D(dc, GL2.GL_COLOR_ATTACHMENT0, textureBloom, GL.GL_TEXTURE_2D);
 		framebuffer.setDrawBuffers(dc, new int[]{GL2.GL_COLOR_ATTACHMENT0});
 		framebuffer.isComplete(dc, false);
 

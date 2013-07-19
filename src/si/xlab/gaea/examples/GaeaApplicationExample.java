@@ -1,29 +1,24 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package si.xlab.gaea.examples;
 
 import gov.nasa.worldwind.Configuration;
-import gov.nasa.worldwind.avlist.AVList;
-import gov.nasa.worldwind.avlist.AVListImpl;
+import gov.nasa.worldwind.WorldWindow;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.Sector;
 import gov.nasa.worldwind.ogc.kml.KMLStyle;
-import gov.nasa.worldwindx.applications.sar.LicenseAgreement;
-import gov.nasa.worldwindx.applications.sar.NOSALicenseAgreement;
 import gov.nasa.worldwindx.examples.ApplicationTemplate;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.util.Calendar;
 import javax.swing.AbstractAction;
+import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JDialog;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButtonMenuItem;
 import si.xlab.gaea.avlist.AvKeyExt;
 import si.xlab.gaea.core.event.FeatureSelectListener;
 import si.xlab.gaea.core.layers.RenderToTextureLayer;
@@ -70,10 +65,11 @@ public class GaeaApplicationExample extends ApplicationTemplate
                     double dist = wfsPanel.getVisibleDistance();
                     Angle tile = wfsPanel.getTileDelta();
                     Color color = wfsPanel.getColor();
+					String lineLabelTag = wfsPanel.getFeatureLableTypeName();
 
                     try
                     {
-                        addWfsLayer(url, name, sector, tile, dist*1000, color);
+                        addWfsLayer(url, name, sector, tile, dist*1000, color, lineLabelTag);
                     }
                     catch (Exception e)
                     {
@@ -97,12 +93,21 @@ public class GaeaApplicationExample extends ApplicationTemplate
         });
         fileMenu.add(quitItem);
         
-        JMenu optionsMenu = new JMenu("Shader options");
+        JMenu optionsMenu = new JMenu("Shading");
         menuBar.add(optionsMenu);
-        optionsMenu.add(new OptionItem(AvKeyExt.ENABLE_SUNLIGHT, "Sunlight"));
-        optionsMenu.add(new OptionItem(AvKeyExt.ENABLE_ATMOSPHERE, "Atmosphere"));
-        optionsMenu.add(new OptionItem(AvKeyExt.ENABLE_ATMOSPHERE_WITH_AERIAL_PERSPECTIVE, "Atmosphere with aerial perspective"));
-        optionsMenu.add(new OptionItem(AvKeyExt.ENABLE_SHADOWS, "Shadows"));
+        ButtonGroup optionsGroup = new ButtonGroup();
+        
+        JMenuItem wwShading = new ShadingItem(new boolean[]{false, false, false, false}, "Default WorldWind");
+        optionsMenu.add(wwShading);
+        optionsGroup.add(wwShading);
+        JMenuItem gaeaShading = new ShadingItem(new boolean[]{true, true, true, false}, "Advanced Gaea+ shading");
+        gaeaShading.setSelected(true);
+        optionsMenu.add(gaeaShading);
+        optionsGroup.add(gaeaShading);
+        JMenuItem shadows = new ShadingItem(new boolean[]{true, true, true, true}, "Advanced Gaea+ shading with shadows");
+        optionsMenu.add(shadows);
+        optionsGroup.add(shadows);
+        shadows.doClick();
         
         JMenu helpMenu = new JMenu("Help");
         menuBar.add(helpMenu);
@@ -138,38 +143,38 @@ public class GaeaApplicationExample extends ApplicationTemplate
         }
     }
     
-    private static class OptionItem extends JCheckBoxMenuItem
+    private static class ShadingItem extends JRadioButtonMenuItem
     {
-        private final String propertyName;
-        private boolean enabled = false;
+        private final boolean[] states;
         
-        public OptionItem(String propertyName, String caption)
+        public ShadingItem(boolean[] _states, String caption)
         {
-            super(caption, false);
-            this.propertyName = propertyName;
+            super(caption);
+            this.states = _states;
             setAction(new AbstractAction(caption) {
                 @Override
                 public void actionPerformed(ActionEvent e)
                 {
-                    toggle();
+                    appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_SUNLIGHT, !states[0], states[0]);
+                    appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_ATMOSPHERE, !states[1], states[1]);
+                    appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_ATMOSPHERE_WITH_AERIAL_PERSPECTIVE, !states[2], states[2]);
+                    appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_SHADOWS, !states[3], states[3]);
                 }
             });
         }
-
-        public void toggle()
-        {
-            appFrame.getWwd().getSceneController().firePropertyChange(propertyName, enabled, !enabled);
-            enabled = !enabled;
-            setSelected(enabled);
-        }
     }
     
-    protected static void addWfsLayer(String url, String featureTypeName, Sector sector, Angle tileDelta, double maxVisibleDistance, Color color)
+    protected static void addWfsLayer(String url, String featureTypeName, Sector sector, Angle tileDelta, double maxVisibleDistance, Color color,
+			String lineLabelTag)
     {
         WFSService service = new WFSService(url, featureTypeName, sector, tileDelta);
         WFSGenericLayer layer = new WFSGenericLayer(service, "WFS: "+ featureTypeName + " (from "
                 + url.replaceAll("^.+://", "").replaceAll("/.*$", "") + ")");
         layer.setMaxActiveAltitude(maxVisibleDistance);
+		if(lineLabelTag != null && !lineLabelTag.isEmpty()){
+			layer.setLineLabelTag(lineLabelTag);
+		}
+
         KMLStyle style = layer.getDefaultStyle();
         style.getLineStyle().setField("color", KMLStyleFactory.encodeColorToHex(color));
         style.getPolyStyle().setField("color", KMLStyleFactory.encodeColorToHex(color).replaceFirst("^ff", "80")); //semi-transparent fill
@@ -181,12 +186,6 @@ public class GaeaApplicationExample extends ApplicationTemplate
     
     public static class GaeaAppFrame extends AppFrame
     {
-        public GaeaAppFrame()
-        {
-            super();
-			getWwd().getModel().getGlobe().setSunlightFromTime(Calendar.getInstance());
-        }        
-        
         protected void updateLayerPanel()
         {
             //remove RTT layer, update layer panel, re-insert RTT; otherwise it will appear in the layer list
@@ -202,6 +201,9 @@ public class GaeaApplicationExample extends ApplicationTemplate
     
     public static void main(String[] args)
     {
+		//MeasureRenderTime.enable(true);
+		//MeasureRenderTime.setMesureGpu(true);
+		
         Configuration.insertConfigurationDocument("si/xlab/gaea/examples/gaea-example-config.xml");
         appFrame = (GaeaAppFrame)ApplicationTemplate.start("Gaea+ Open Source Example Application", GaeaAppFrame.class);
         insertBeforeCompass(appFrame.getWwd(), RenderToTextureLayer.getInstance());

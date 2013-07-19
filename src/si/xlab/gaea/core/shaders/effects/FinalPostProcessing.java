@@ -96,7 +96,7 @@ public class FinalPostProcessing extends AbstractEffect{
 			gl.glActiveTexture(GL.GL_TEXTURE2);
 			gl.glBindTexture(GL.GL_TEXTURE_2D, textureBloom);
 			
-			Shader shader = dc.getShaderContext().getShader("HDRBloom.glsl", "#version 130\n");
+			Shader shader = dc.getShaderContext().getShader("HDRBloom.glsl", "#version 120\n");
 			shader.enable(dc.getShaderContext());
 			shader.setParam("intensityAve", new float[]{intensityAve});
 			shader.setParam("colorTex", 0);
@@ -114,7 +114,7 @@ public class FinalPostProcessing extends AbstractEffect{
 		}
 		else{
 
-			Shader shader = dc.getShaderContext().getShader("HDR.glsl", "#version 130\n");
+			Shader shader = dc.getShaderContext().getShader("HDR.glsl", "#version 120\n");
 			shader.enable(dc.getShaderContext());
 			shader.setParam("intensityAve", new float[]{intensityAve});
 			shader.setParam("colorTex", 0);

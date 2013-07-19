@@ -160,7 +160,12 @@ public @interface JsonTypeInfo
      * Note that for type metadata type of {@link Id#CUSTOM},
      * this setting may or may not have any effect.
      */
-    public As include() default As.PROPERTY;
+    //X-PATCH Marjan
+    //annotation class referenced by package.name.ClassName to work around the bug in some JDKs
+    public As include() default org.codehaus.jackson.annotate.JsonTypeInfo.As.PROPERTY;
+    //X-ORIG
+    //public As include() default As.PROPERTY;
+    //X-END
 
     /**
      * Property names used when type inclusion method ({@link As#PROPERTY}) is used

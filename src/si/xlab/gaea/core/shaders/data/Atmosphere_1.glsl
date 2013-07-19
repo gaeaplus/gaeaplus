@@ -1,6 +1,5 @@
 #include "AtmosphereCommon.glsl"
 
-uniform sampler2D colorSampler;			//color from current framebuffer;
 uniform sampler2D depthSampler;			//depth from current framebuffer;
 uniform sampler2D transmittanceSampler;	//precomputed transmittance texture (T table)
 uniform sampler3D inscatterSampler;		//precomputed inscattered light (S table)
@@ -39,13 +38,6 @@ vec3 getInscatterATM(vec3 x, vec3 v, vec3 s, float r, float mu,
         result = vec3(0.0);
     }
     return result * ISun;
-}
-
-vec3 getSkyColor(float r, float mu, sampler2D transmittanceSampler, sampler2D colorSampler, vec2 colorCoords){
-
-	vec3 color = texture2D(colorSampler, colorCoords).rgb;
-	vec3 skyColor = pow(color, vec3(2.0)) * transmittance(r, mu, transmittanceSampler) * 10.0;
-	return skyColor * 0.05;
 }
 
 vec3 getSunColor(vec3 x, vec3 v, vec3 s, float r, float mu, sampler2D transmittanceSampler) {
@@ -87,9 +79,8 @@ void main()
 													   transmittanceSampler);
 
 	vec3 sunColor = getSunColor(x, v, s, r, mu, transmittanceSampler); //L0
-	vec3 skyColor = getSkyColor(r, mu, transmittanceSampler, colorSampler, coords);
 
-	vec3 outColor = sunColor + skyColor + inscatterColor;
+	vec3 outColor = sunColor + inscatterColor;
 
 #ifdef _POSEFFECTS_
 	//float intensityW = clamp(1.0 - length(coords * 2.0 - 1.0), 0.1, 1.0);
@@ -97,7 +88,6 @@ void main()
 	gl_FragColor = vec4(outColor, intensity);
 #else
 	gl_FragColor = vec4(HDR(outColor, exposure), 1.0);
-	gl_FragDepth = depth;
 #endif
 
 	//gl_FragColor = vec4((outColor) * 0.06, 1.0);

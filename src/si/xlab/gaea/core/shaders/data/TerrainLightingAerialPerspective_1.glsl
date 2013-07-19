@@ -91,7 +91,7 @@ vec3 getTerrainColor(vec3 x, vec3 v, float d, vec3 s, float r, float mu,
 	}
 
 	if(mat.z > 0.01){
-		groundColor = 5.0 * pow(color, vec3(2.0)) * mat.b/d;
+		groundColor += pow(color, vec3(2.5)) * mat.b * ISun / M_PI;
 	}
 
 	//usage detection

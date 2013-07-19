@@ -10,7 +10,7 @@ import gov.nasa.worldwind.avlist.AVKey;
 import gov.nasa.worldwind.cache.GpuResourceCache;
 import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.layers.Layer;
-import gov.nasa.worldwind.layers.LayerRenderAttributes;
+import gov.nasa.worldwind.layers.RenderAttributes;
 import gov.nasa.worldwind.pick.*;
 import gov.nasa.worldwind.render.*;
 import si.xlab.gaea.core.shaders.ShaderContextImpl;
@@ -34,6 +34,13 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
     protected Model model;
     protected View view;
     protected double verticalExaggeration = 1d;
+	
+	//X-START
+	//Vito
+    protected double terrainTopologyDetail = 0d;
+    protected double terrainTexturesDetail = 0d;
+	//X-END
+	
     protected DrawContext dc = new DrawContextImpl();
     /**
      * The list of picked objects at the current pick point. This list is computed during each call to repaint.
@@ -211,6 +218,39 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
     {
         return this.verticalExaggeration;
     }
+
+	//X-START
+	//Vito
+	/**
+	 * Set terrain topology detail hint.
+	 * Values greater than zero increase the quality. 
+	 * Values less than zero decrease the quality.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	@Override
+	public void setTerrainTopologyDetail(double detailHint){
+		this.terrainTopologyDetail = detailHint;	
+		this.dc.setTerrainTopologyDetail(detailHint);
+		this.firePropertyChange(AVKey.REPAINT, null, null);
+	}
+
+	/**
+	 * Set terrain images detail hint (resolution).
+	 * Values greater than zero increase the resolution. 
+	 * Values less than zero decrease the resolution.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	@Override
+	public void setTerrainTexturesDetail(double detailHint){
+		this.terrainTexturesDetail = detailHint;		
+		this.setTerrainTexturesDetail(detailHint);
+		this.firePropertyChange(AVKey.REPAINT, null, null);
+	}
+	//X-END
 
     /** {@inheritDoc} */
     public void setPickPoint(Point pickPoint)
@@ -428,9 +468,9 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
         //X-START
 		//Vito
 		//mesure repaint time
-		MeasureRenderTime.startMesure(dc, "repaint");
+		MeasureRenderTime.startMeasure(dc, "repaint");
         this.doRepaint(this.dc);
-        MeasureRenderTime.stopMesure(dc);
+        MeasureRenderTime.stopMeasure(dc);
 		//X-END
 
         ++this.frame;
@@ -620,11 +660,11 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
                         //X-START
                         //Vito
                         //render statistics
-                        MeasureRenderTime.startMesure(dc, layer.getName());
+                        MeasureRenderTime.startMeasure(dc, layer.getName());
                         if(layer.isEnabled()){
                             layer.preRender(dc);
                         }
-                        MeasureRenderTime.stopMesure(dc);
+                        MeasureRenderTime.stopMeasure(dc);
                         //X-END
                     }
                     catch (Exception e)
@@ -706,10 +746,10 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
                         //X-START
                         //Vito
                         //pick time measurement added
-                        MeasureRenderTime.startMesure(dc, layer.getName());
+                        MeasureRenderTime.startMeasure(dc, layer.getName());
                         dc.setCurrentLayer(layer);
                         layer.pick(dc, dc.getPickPoint());
-                        MeasureRenderTime.stopMesure(dc);
+                        MeasureRenderTime.stopMeasure(dc);
                         //X-END
                     }
                 }
@@ -837,9 +877,9 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
             //X-START
             //Vito
             //pick terrain measurement added
-            MeasureRenderTime.startMesure(dc, "terrain picking");
+            MeasureRenderTime.startMeasure(dc, "terrain picking");
             this.pickTerrain(dc);
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
             //X-END
             
             this.doNonTerrainPick(dc);
@@ -883,11 +923,15 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
         // Pick against the deferred/ordered renderables.
         dc.setOrderedRenderingMode(true);
 //        dc.applyGroupingFilters();
-        dc.applyClutterFilter();
-        while (dc.peekOrderedRenderables() != null)
-        {
-            dc.pollOrderedRenderables().pick(dc, dc.getPickPoint());
-        }
+
+		for(RenderAttributes.RenderType rt : RenderAttributes.RenderType.values()){
+        	dc.applyClutterFilter(rt);
+        	while (dc.peekOrderedRenderables(rt) != null)
+        	{
+            	dc.pollOrderedRenderables(rt).pick(dc, dc.getPickPoint());
+        	}
+		}
+
         dc.setOrderedRenderingMode(false);
     }
 
@@ -937,29 +981,30 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
 
     //X-START
     //Vito
-    
     //draw method implementation separated on draw(), drawLayer() and drawLayers() methods 
     protected void draw(DrawContext dc)
     {
         //draw all layers
         drawLayers(dc, null);
         //draw all orderable renderables
-        drawOrderedRenderables(dc);
+		drawOrderedSurfaceRenderables(dc);
+        drawOrderedRenderables(dc, RenderAttributes.RenderType.SPATIAL);
+        drawOrderedRenderables(dc, RenderAttributes.RenderType.GLOBE);
+		drawScreenCreditController(dc);
+        drawOrderedRenderables(dc, RenderAttributes.RenderType.SCREEN);
         //draw diagnostic
         drawDiagnosticDisplay(dc);
     }
     
-    //X-START
-    //Vito
     //render one layer
 	protected void drawLayer(DrawContext dc, Layer layer)
 	{
         try{
             if(layer != null && layer.isEnabled()){
-                MeasureRenderTime.startMesure(dc, layer.getName());
+                MeasureRenderTime.startMeasure(dc, layer.getName());
                 dc.setCurrentLayer(layer);
                 layer.render(dc);
-                MeasureRenderTime.stopMesure(dc);
+                MeasureRenderTime.stopMeasure(dc);
             }
         }
         catch(Exception e){
@@ -972,7 +1017,7 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
     
     //render layers with specific render type
     //if renderTypeFilter is null, all layers will be rendered
-    protected void drawLayers(DrawContext dc, LayerRenderAttributes.RenderType renderTypeFilter){
+    protected void drawLayers(DrawContext dc, RenderAttributes.RenderType renderTypeFilter){
         try
         {
             // Draw the layers.
@@ -1009,22 +1054,23 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
         }
     }
     
-    protected void drawOrderedRenderables(DrawContext dc){
+	//new parameter RenderAttributes.RenderType added
+    protected void drawOrderedRenderables(DrawContext dc, RenderAttributes.RenderType renderType){
+
+		if(renderType == null){
+            Logging.logger().log(Level.SEVERE, 
+                                 Logging.getMessage("BasicSceneController.ExceptionDuringOrderableRenderableRendering: renderType is NULL!"));
+			return;
+		}
+		
         try{
-            // Draw the deferred/ordered surface renderables.
-            this.drawOrderedSurfaceRenderables(dc);
-
-            if(this.screenCreditController != null){
-                this.screenCreditController.render(dc);
-            }
-
             // Draw the deferred/ordered renderables.
             dc.setOrderedRenderingMode(true);
             // dc.applyGroupingFilters();
-            dc.applyClutterFilter();
-            while(dc.peekOrderedRenderables() != null){
+            dc.applyClutterFilter(renderType);
+            while(dc.peekOrderedRenderables(renderType) != null){
                 try{
-                    dc.pollOrderedRenderables().render(dc);
+                    dc.pollOrderedRenderables(renderType).render(dc);
                 }
                 catch(Exception e){
                     Logging.logger().log(Level.WARNING,
@@ -1038,6 +1084,12 @@ public abstract class AbstractSceneController extends WWObjectImpl implements Sc
                                  Logging.getMessage("BasicSceneController.ExceptionDuringOrderableRenderableRendering"), e);
         }
     }
+
+	protected void drawScreenCreditController(DrawContext dc){
+        if(this.screenCreditController != null){
+            this.screenCreditController.render(dc);
+        }
+	}
     
     protected void drawDiagnosticDisplay(DrawContext dc){
         try

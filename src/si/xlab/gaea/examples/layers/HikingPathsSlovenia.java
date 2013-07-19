@@ -22,7 +22,7 @@ public class HikingPathsSlovenia extends MultiLayersLayer
             Angle.fromDegrees(13.3), Angle.fromDegrees(16.6));
     private static final int MAX_DISTANCE = 200000;
     private static final String SERVER_URL = "http://demo.data.gaeaplus.eu/geo";
-    private static final String NAME = "Hiking paths in Slovenia - easy, intermediate, difficult";
+    private static final String NAME = "Hiking paths in Slovenia";
 
     public HikingPathsSlovenia()
     {
@@ -30,9 +30,9 @@ public class HikingPathsSlovenia extends MultiLayersLayer
         setName(NAME);
         setMaxActiveAltitude(MAX_DISTANCE);
         
-        addLayer("topp:planinske_poti_easy_wgs", "d000ffff");
-        addLayer("topp:planinske_poti_medium_wgs", "d00080ff");
-        addLayer("topp:planinske_poti_hard_wgs", "d00000ff");
+        addLayer("topp:planinske_poti_easy_wgs", "ff00ffff");
+        addLayer("topp:planinske_poti_medium_wgs", "ff0080ff");
+        addLayer("topp:planinske_poti_hard_wgs", "ff0000ff");
     }
      
     final void addLayer(String featureType, String lineColor)

@@ -3,6 +3,7 @@ package si.xlab.gaea.core.shaders;
 import gov.nasa.worldwind.Disposable;
 import gov.nasa.worldwind.render.DrawContext;
 import java.net.URL;
+import javax.media.opengl.GL;
 
 /**
  *
@@ -21,6 +22,8 @@ public interface ShaderContext extends Disposable{
 
 	public void pushShader();
 	public void popShader();
+
+	public boolean isShaderVersionSupported(float version);
 
 	/**
 	* Compile shader named filename or retrieve it from cache.

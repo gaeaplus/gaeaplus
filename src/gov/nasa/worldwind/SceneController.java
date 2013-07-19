@@ -66,6 +66,30 @@ public interface SceneController extends WWObject, Disposable
      */
     void setVerticalExaggeration(double verticalExaggeration);
 
+	//X-START
+	//Vito
+	
+	/**
+	 * Set terrain topology detail hint.
+	 * Values greater than zero increase the quality. 
+	 * Values less than zero decrease the quality.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	void setTerrainTopologyDetail(double detailHint);
+
+	/**
+	 * Set terrain images detail hint (resolution).
+	 * Values greater than zero increase the resolution. 
+	 * Values less than zero decrease the resolution.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	void setTerrainTexturesDetail(double detailHint);
+	//X-END
+
     /**
      * Indicates the current vertical exaggeration.
      *

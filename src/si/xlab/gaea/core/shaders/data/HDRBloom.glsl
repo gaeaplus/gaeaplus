@@ -4,19 +4,15 @@ uniform sampler2D depthTex;
 
 uniform float intensityAve;
 
+varying vec2 coords;
+
 #ifdef _VERTEX_
 
-in vec4 in_vertex;
-out vec2 coords;
-
 void main() {
-    coords = in_vertex.xy * 0.5 + 0.5;
-    gl_Position = in_vertex;
+    coords = gl_Vertex.xy * 0.5 + 0.5;
+    gl_Position = gl_Vertex;
 }
 #else
-
-in vec2 coords;
-out vec4 out_Color;
 
 vec3 HDR(vec3 L, float exposure) {
     L = L * exposure;
@@ -34,12 +30,11 @@ vec3 HDR(vec3 L, float exposure) {
 
 void main(){
 
-	vec4 color = texture(colorTex, coords);
-	vec4 bloom = texture(bloomTex, coords);
-	float depth = texture(depthTex, coords).r;
+	vec4 color = texture2D(colorTex, coords);
+	vec4 bloom = texture2D(bloomTex, coords);
+	float depth = texture2D(depthTex, coords).r;
 
-	out_Color = vec4(HDR(color.rgb + bloom.rgb * bloom.a * 0.3, clamp((0.4 + (intensityAve * 0.1))/intensityAve, 0.2, 6.0)), 1.0);
-	//out_Color = vec4(HDR(bloom.rgb * bloom.a, clamp(0.60/intensityAve, 0.30, 0.6)), 1.0);
+	gl_FragColor = vec4(HDR(color.rgb + bloom.rgb * bloom.a * 0.3, clamp((0.4 + (intensityAve * 0.1))/intensityAve, 0.2, 6.0)), 1.0);
 	gl_FragDepth = depth;
 }
 #endif

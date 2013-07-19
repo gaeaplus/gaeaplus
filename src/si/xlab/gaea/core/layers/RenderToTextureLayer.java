@@ -1,7 +1,6 @@
 package si.xlab.gaea.core.layers;
 
 import com.jogamp.opengl.util.texture.TextureIO;
-import gov.nasa.worldwind.WorldWindow;
 import gov.nasa.worldwind.avlist.AVKey;
 import gov.nasa.worldwind.avlist.AVList;
 import gov.nasa.worldwind.avlist.AVListImpl;
@@ -17,12 +16,10 @@ import gov.nasa.worldwind.util.LevelSet;
 import gov.nasa.worldwind.util.Logging;
 import gov.nasa.worldwind.util.MeasureRenderTime;
 import gov.nasa.worldwind.util.PerformanceStatistic;
-import java.awt.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.logging.Logger;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import si.xlab.gaea.core.render.surfaceobjects.SurfaceObjectRenderer;
@@ -428,9 +425,9 @@ public class RenderToTextureLayer extends TiledImageLayer
                 this.currentTiles.size());
 			
 			//mesure render time
-			MeasureRenderTime.startMesure(dc, "renderTiles");
+			MeasureRenderTime.startMeasure(dc, "renderTiles");
             dc.getGeographicSurfaceTileRenderer().renderTiles(dc, this.currentTiles.values());
-			MeasureRenderTime.stopMesure(dc);
+			MeasureRenderTime.stopMeasure(dc);
 			
             gl.glPopAttrib();
         }
@@ -544,7 +541,7 @@ public class RenderToTextureLayer extends TiledImageLayer
                 dc.getFramebufferController().push();
                 dc.getFramebufferController().setCurrent(fb);
                 fb.bind(dc);
-                fb.attachTexture(dc, texID, GL2.GL_COLOR_ATTACHMENT0, 0);
+                fb.attachTexture2D(dc, GL2.GL_COLOR_ATTACHMENT0,texID, GL.GL_TEXTURE_2D);
                 fb.isComplete(dc, true);
                 fb.setDrawBuffers(dc, new int[]{GL2.GL_COLOR_ATTACHMENT0});
 

@@ -8,4 +8,6 @@
     <Property name="gov.nasa.worldwind.avkey.InitialLatitude" value="46"/>
     <Property name="gov.nasa.worldwind.avkey.InitialLongitude" value="14.7"/>
     <Property name="gov.nasa.worldwind.avkey.InitialAltitude" value="150000"/>
+    
+	<Property name="gov.nasa.worldwind.avkey.InitialAltitude" value="150000"/>
 </WorldWindConfiguration>

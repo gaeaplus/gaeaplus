@@ -26,6 +26,10 @@ public class StatisticsPanel extends JPanel
     private int updateInterval = 500;
     private long lastUpdate;
 
+	//X-START
+	//Vito
+	private final Font labelFont = new Font(Font.SANS_SERIF, Font.PLAIN, 10);
+
     public StatisticsPanel(WorldWindow wwd)
     {
         // Make a panel at a default size.
@@ -66,7 +70,7 @@ public class StatisticsPanel extends JPanel
     private void makePanel(Dimension size)
     {
         // Make and fill the panel holding the statistics.
-        this.statsPanel = new JPanel(new GridLayout(0, 1, 0, 15));
+        this.statsPanel = new JPanel(new GridLayout(0, 1, 0, 3));
         this.statsPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         // Must put the grid in a container to prevent scroll panel from stretching their vertical spacing.
@@ -99,6 +103,10 @@ public class StatisticsPanel extends JPanel
         for (PerformanceStatistic stat : pfs)
         {
             JLabel jcb = new JLabel(stat.toString());
+			//X-START
+			//Vito
+			jcb.setFont(labelFont);
+			//X-END
             this.statsPanel.add(jcb);
         }
     }

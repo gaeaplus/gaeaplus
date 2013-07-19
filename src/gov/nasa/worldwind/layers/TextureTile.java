@@ -17,6 +17,7 @@ import gov.nasa.worldwind.util.*;
 import javax.media.opengl.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import si.xlab.gaea.core.shaders.Shader;
 
 /**
  * This class manages the conversion and timing of image data to a JOGL Texture, and provides an interface for binding
@@ -466,6 +467,16 @@ public class TextureTile extends Tile implements SurfaceTile
             throw new IllegalStateException(message);
         }
 
+	//X-START
+	//Vito
+	//TODO: make proper support for those kind of operations
+        //      - geather them in one common interface method
+	Shader shader = dc.getShaderContext().getCurrentShader();
+        if(shader != null){
+            shader.setParam("texelScale", new float[]{1.0f, 1.0f});
+        }
+	//X-END
+
         GL2 gl = dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
 
         Texture t;
@@ -542,6 +553,16 @@ public class TextureTile extends Tile implements SurfaceTile
         GL2 gl = dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
         gl.glTranslated(sShift, tShift, 0);
         gl.glScaled(oneOverTwoToTheN, oneOverTwoToTheN, 1);
+
+	//X-START
+	//Vito
+	//TODO: make proper support for those kind of operations
+        //      - geather them in one common interface method
+        Shader shader = dc.getShaderContext().getCurrentShader();
+        if(shader != null){
+            shader.setParam("texelScale", new float[]{(float)twoToTheN, (float)twoToTheN});
+        }
+	//X-END
     }
 
     @Override

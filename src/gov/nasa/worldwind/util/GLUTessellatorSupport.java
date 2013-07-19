@@ -82,6 +82,12 @@ public class GLUTessellatorSupport
         GLU.gluTessCallback(this.tess, GLU.GLU_TESS_VERTEX, callback);
         GLU.gluTessCallback(this.tess, GLU.GLU_TESS_END, callback);
         GLU.gluTessCallback(this.tess, GLU.GLU_TESS_COMBINE, callback);
+		
+		//X-START
+		//Vito
+		//force tessellator to output only triangles
+        GLU.gluTessCallback(this.tess, GLU.GLU_EDGE_FLAG, callback);
+		//X-END
     }
 
     /**
@@ -94,6 +100,12 @@ public class GLUTessellatorSupport
         GLU.gluTessCallback(this.tess, GLU.GLU_TESS_VERTEX, null);
         GLU.gluTessCallback(this.tess, GLU.GLU_TESS_END, null);
         GLU.gluTessCallback(this.tess, GLU.GLU_TESS_COMBINE, null);
+
+		//X-START
+		//Vito
+		//force tessellator to output only triangles
+        GLU.gluTessCallback(this.tess, GLU.GLU_EDGE_FLAG, null);
+		//X-END
         this.tess = null;
     }
 

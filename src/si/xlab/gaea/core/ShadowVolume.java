@@ -150,7 +150,7 @@ public class ShadowVolume implements Disposable{
 		shader.enable(dc.getShaderContext());
 
 
-		shader.setParam("u_light", dc.getSunPosition());
+		shader.setParam("u_light", dc.getSunlightDirection());
 		shader.setParam("u_zNear", new float[]{(float)(dc.getView().getNearClipDistance())});
 		shader.setParam("u_zFar", new float[]{(float)dc.getView().getFarClipDistance()});
 
@@ -171,11 +171,13 @@ public class ShadowVolume implements Disposable{
 			gl2.glPolygonMode(GL.GL_FRONT_AND_BACK, GL2.GL_FILL);
 		}
 
+		sgl.beginRendering(dc);
 		for(SectorGeometry sg : sgl){
 			if(!isSectorInShadow(dc, sg.getSector())){
 				sg.renderAdjacency(dc,1, false);
 			}
 		}
+		sgl.endRendering(dc);
 //		renderTest(dc);
 
 		if(debug){
@@ -241,7 +243,7 @@ public class ShadowVolume implements Disposable{
 		float is = 1;
 		Vec4[] corners = sector.computeCornerPoints(dc.getGlobe(), dc.getVerticalExaggeration());	
 		for(int i = 0; i<corners.length; i++){
-			is *= Math.max(dc.getSunPosition().normalize3().dot3(corners[i].normalize3()), 0.0d);
+			is *= Math.max(dc.getSunlightDirection().normalize3().dot3(corners[i].normalize3()), 0.0d);
 		}
 
 		return (is == 0 ? false : true);
@@ -365,7 +367,7 @@ public class ShadowVolume implements Disposable{
 
 //			Sector sector = new Sector(Angle.fromDegrees(45.4), Angle.fromDegrees(45.6), Angle.fromDegrees(14.4), Angle.fromDegrees(14.6));
 
-			Vec4 dirSun = dc.getSunPosition().normalize3();
+			Vec4 dirSun = dc.getSunlightDirection().normalize3();
 			Line[] tempLine = new Line[3];
 			double[] tempDist = new double[3];
 			Plane sunPlane = new Plane(dirSun.x, dirSun.y, dirSun.z, 0.0);
@@ -373,7 +375,7 @@ public class ShadowVolume implements Disposable{
 			Vec4 center = dc.getGlobe().computePointFromPosition(dc.getVisibleSector().getCentroid(), 0.0d);
 			Line centerLine = new Line(center, dirSun);
 			Vec4 centerProjected = sunPlane.intersect(centerLine);
-			Vec4 newZ = dc.getSunPosition().normalize3();
+			Vec4 newZ = dc.getSunlightDirection().normalize3();
 			Vec4 newY = centerProjected.normalize3();
 			Vec4 newX = newY.cross3(newZ).normalize3();
 

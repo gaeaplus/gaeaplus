@@ -6,6 +6,7 @@ import gov.nasa.worldwind.util.Logging;
 import java.net.URL;
 import java.util.Stack;
 import java.util.logging.Logger;
+import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLContext;
 
@@ -25,7 +26,7 @@ public class ShaderContextImpl implements ShaderContext{
 	private DrawContext dc;
 
 	private HashMap<ShaderKey, Shader> shaders = new HashMap<ShaderKey, Shader>();
-	private Stack shadersStack = new Stack();
+	private Stack<Shader> shadersStack = new Stack<Shader>();
 	
 	private final Logger logger = Logging.logger(ShaderContextImpl.class.getName());
 
@@ -69,6 +70,8 @@ public class ShaderContextImpl implements ShaderContext{
 
 	public void apply(DrawContext dc){
 		this.dc = dc;
+		GL gl = dc.getGL();
+		glslCompiler.defineSupportedShaders(gl);
 	}
 
 	public void setCurrentShader(Shader shader){
@@ -93,7 +96,7 @@ public class ShaderContextImpl implements ShaderContext{
 		}
 		
 		if(!shadersStack.isEmpty()){
-			Shader shader = (Shader)shadersStack.pop();
+			Shader shader = shadersStack.pop();
 			shader.enable(this);
 		}
 		else{
@@ -101,6 +104,11 @@ public class ShaderContextImpl implements ShaderContext{
             setCurrentShader(null);
 			gl.glUseProgram(0);
 		}
+	}
+
+	@Override
+	public boolean isShaderVersionSupported(float version) {
+		return this.glslCompiler.isShaderVersionSupported(version);
 	}
 
 	public DrawContext getDC(){
@@ -130,36 +138,8 @@ public class ShaderContextImpl implements ShaderContext{
 	}
 
 	public Shader getShader(String fileName, String runtimeCode, boolean removeExisting){
-
 		URL fileUrl = this.shaderFactory.getClass().getResource(fileName);
-
-		ShaderKey key = new ShaderKey(fileUrl, runtimeCode);
-		Shader shader = this.shaders.get(key);
-
-		if(shader == null){
-
-			if(removeExisting){
-				Stack stack = new Stack();
-				for(ShaderKey k : this.shaders.keySet()){
-					if(k.url.equals(fileUrl)){
-						shader.disable(this);
-						stack.push(k);
-						shader.dispose(this);
-						shader = null;	
-					}
-				}
-				for(Object o : stack){
-					shaders.remove((ShaderKey)o);
-				}
-				stack.clear();
-			}
-			
-			if(fileName.endsWith("glsl")){
-				shader = shaderFactory.buildGLSLShader(this, runtimeCode, fileName);
-			}
-			this.shaders.put(key, shader);
-		}
-		return shader;
+        return getShader(fileUrl, runtimeCode, removeExisting);
 	}
 
 	@Override
@@ -174,7 +154,7 @@ public class ShaderContextImpl implements ShaderContext{
 		if(shader == null){
 
 			if(removeExisting){
-				Stack stack = new Stack();
+				Stack<ShaderKey> stack = new Stack<ShaderKey>();
 				for(ShaderKey k : this.shaders.keySet()){
 					if(k.url.equals(fileUrl)){
 						shader.disable(this);
@@ -183,13 +163,13 @@ public class ShaderContextImpl implements ShaderContext{
 						shader = null;	
 					}
 				}
-				for(Object o : stack){
-					shaders.remove((ShaderKey)o);
+				for(ShaderKey sk : stack){
+					shaders.remove(sk);
 				}
 				stack.clear();
 			}
 			
-			if(fileUrl.getQuery().endsWith("glsl")){
+			if(fileUrl.getFile().endsWith("glsl")){
 				shader = shaderFactory.buildGLSLShader(this, runtimeCode, fileUrl);
 			}
 			this.shaders.put(key, shader);

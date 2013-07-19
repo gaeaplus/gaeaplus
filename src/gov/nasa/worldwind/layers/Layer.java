@@ -21,7 +21,7 @@ public interface Layer extends WWObject, Disposable, Restorable
      * Returns some information that the rendering infrastructure needs to decide when and how to render the layer.
      * @return 
      */
-    public LayerRenderAttributes getRenderAttributes();
+    public RenderAttributes getRenderAttributes();
     //X-END
             
     /**

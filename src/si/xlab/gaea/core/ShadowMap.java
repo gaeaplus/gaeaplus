@@ -19,7 +19,9 @@ import gov.nasa.worldwind.geom.Position;
 import gov.nasa.worldwind.geom.Sector;
 import gov.nasa.worldwind.geom.Vec4;
 import gov.nasa.worldwind.layers.Layer;
+import gov.nasa.worldwind.layers.RenderAttributes;
 import gov.nasa.worldwind.render.DrawContext;
+import gov.nasa.worldwind.render.OrderedRenderable;
 import gov.nasa.worldwind.terrain.RectangularTessellator;
 import gov.nasa.worldwind.terrain.SectorGeometry;
 import gov.nasa.worldwind.terrain.SectorGeometryList;
@@ -48,9 +50,8 @@ public class ShadowMap {
 	//minX,maxX,minY,maxY,minDistance,maxDistance
 	private	double[] frustum = new double[6];
 
-
 	//model matrix transform
-	private Matrix modelViewShadow;
+	private Matrix modelViewShadow = Matrix.IDENTITY;
 
 	private Vec4 shadowX;
 	private Vec4 shadowY;
@@ -58,8 +59,6 @@ public class ShadowMap {
 	private Vec4 shadowPos;
 
 	private boolean shadowTerrain = true;
-	private boolean hasLayerToRender;
-	private boolean shadowMapCreated;
 	
 	private final Logger logger = Logging.logger(ShadowMap.class.getName());
 
@@ -68,8 +67,6 @@ public class ShadowMap {
 		this.textureWidth = textureWidth;
 		this.textureHeight = textureHeight;
 		this.texture = null;
-		shadowMapCreated = false;
-
 		shadowMapRenderer = new ShadowMapRenderer();
 	}
 
@@ -88,14 +85,12 @@ public class ShadowMap {
 
 	public void bindTexture(GL gl){
 		if(texture != null){
-//			texture.enable();
 			texture.bind(gl);
 		}
 	}
 
 	public void dispose(GL gl){
 		this.texture.destroy(gl);
-		this.shadowMapCreated = false;
 	}
 
 	public void setShadowTerrain(boolean enable){
@@ -281,16 +276,11 @@ public class ShadowMap {
 				true, false, false, null, null);
 
 		this.texture = TextureIO.newTexture(td);
-//		this.texture.setTexParameteri(GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST);
-//		this.texture.setTexParameteri(GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST);
-
 		this.texture.setTexParameteri(gl, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
 		this.texture.setTexParameteri(gl, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
-
 		this.texture.setTexParameterfv(gl, GL2.GL_TEXTURE_BORDER_COLOR, new float[]{1.0f, 1.0f, 1.0f, 1.0f}, 0);
 		this.texture.setTexParameteri(gl, GL.GL_TEXTURE_WRAP_S, GL2.GL_CLAMP_TO_BORDER);
 		this.texture.setTexParameteri(gl, GL.GL_TEXTURE_WRAP_T, GL2.GL_CLAMP_TO_BORDER);
-//		this.texture.setTexParameteri(GL.GL_DEPTH_TEXTURE_MODE, GL.GL_LUMINANCE);
 
 		//shadow parameters
 		this.texture.setTexParameteri(gl, GL2.GL_TEXTURE_COMPARE_MODE, GL2.GL_COMPARE_R_TO_TEXTURE);
@@ -299,11 +289,7 @@ public class ShadowMap {
 
 	public boolean renderShadowMap(DrawContext dc, Vec4 lightDirection){
 
-		this.hasLayerToRender = false;
-		this.shadowMapCreated = true;
-
 		if(lightDirection == null){
-			shadowMapCreated = false;
 			logger.warning("sun direction is NULL!");
 			return false;
 		}
@@ -476,11 +462,13 @@ public class ShadowMap {
 			try
 			{
 				GL2 gl = dc.getGL().getGL2();
+				gl.glPushAttrib(GL2.GL_ALL_ATTRIB_BITS);
+				
 				dc.getFramebufferController().push();
 				framebuffer.bind(dc);
 
-				if(!framebuffer.hasTexturesAttached()){
-        			framebuffer.attachTexture(dc, texture.getTextureObject(gl), GL2.GL_DEPTH_ATTACHMENT, 0);
+				if(!framebuffer.hasTextureAttached()){
+        			framebuffer.attachTexture2D(dc, GL2.GL_DEPTH_ATTACHMENT, texture.getTextureObject(gl), GL.GL_TEXTURE_2D);
 					framebuffer.setDrawBuffers(dc, new int[]{GL.GL_DEPTH_ATTACHMENT});
 				}
 
@@ -496,7 +484,6 @@ public class ShadowMap {
 				gl.glLoadIdentity();
 
 				gl.glEnable(GL.GL_DEPTH_TEST);
-
 				gl.glClear(GL.GL_DEPTH_BUFFER_BIT);
 
 				if(!setProjection(dc)){
@@ -552,8 +539,6 @@ public class ShadowMap {
 						sg.endRendering(dc);
 					}
 					sglV.endRendering(dc);
-
-					hasLayerToRender = true;
 				}
 
 				//render layers that cast shadows
@@ -568,7 +553,6 @@ public class ShadowMap {
 								dc.setCurrentLayer(layer);
 								Shadow shadowLayer = (Shadow)layer;
 								shadowLayer.renderShadow(dc);
-								hasLayerToRender = true;
 							}
 						}
 						catch (Exception e)
@@ -583,12 +567,25 @@ public class ShadowMap {
 					dc.setCurrentLayer(null);
 				}
 
+				// Draw the deferred/ordered renderables.
+				dc.setOrderedRenderingMode(true);
+				for(OrderedRenderable or : dc.getOrderedRenderables(RenderAttributes.RenderType.SPATIAL)){
+					try {
+						or.render(dc);
+					} catch (Exception e) {
+						Logging.logger().log(Level.WARNING,
+								Logging.getMessage("BasicSceneController.ExceptionDuringRendering"), e);
+					}
+				}
+				dc.setOrderedRenderingMode(false);
+				//
+
 				gl.glDisable(GL.GL_POLYGON_OFFSET_FILL);
+				gl.glDisable(GL.GL_DEPTH_TEST);
+				gl.glDepthRange(0.0, 1.0);
 
 				//pop modelView matrix
-//				dc.getView().setModelviewMatrix(matrix);
 				dc.getView().useModelviewMatrixAlt(false);
-				gl.glDepthRange(0.0, 1.0);
 
 				gl.glMatrixMode(GL2.GL_PROJECTION);
 				gl.glPopMatrix();
@@ -596,10 +593,11 @@ public class ShadowMap {
 				gl.glPopMatrix();
 				
 				dc.getFramebufferController().pop();
+				gl.glPopAttrib();
 			}
 			catch (Throwable e)
 			{
-				Logging.logger().log(Level.SEVERE, Logging.getMessage("BasicSceneController.ExceptionDuringRendering"), e);
+				Logging.logger().log(Level.SEVERE, Logging.getMessage("ShadowMap.ExceptionDuringRendering"), e);
 			}
 		}
 

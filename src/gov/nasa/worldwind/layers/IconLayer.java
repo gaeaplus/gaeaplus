@@ -39,6 +39,13 @@ public class IconLayer extends AbstractLayer
     {
     }
 
+	//X-START
+	//Vito
+	public IconLayer(IconRenderer renderer){
+		this.iconRenderer = renderer;
+	}
+	//X-END
+
     /**
      * Adds the specified <code>icon</code> to this layer's internal collection. If this layer's internal collection has
      * been overridden with a call to {@link #setIcons}, this will throw an exception.

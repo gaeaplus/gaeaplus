@@ -1560,8 +1560,8 @@ public class BasicElevationModel extends AbstractElevationModel implements BulkR
         final double sectorDeltaLon = sector.getDeltaLon().radians;
         final double dLat = sector.getMaxLatitude().radians - latitude.radians;
         final double dLon = longitude.radians - sector.getMinLongitude().radians;
-        final double sLat = dLat / sectorDeltaLat;
-        final double sLon = dLon / sectorDeltaLon;
+        double sLat = dLat / sectorDeltaLat;
+        double sLon = dLon / sectorDeltaLon;
 
         int j = (int) ((tileHeight - 1) * sLat);
         int i = (int) ((tileWidth - 1) * sLon);

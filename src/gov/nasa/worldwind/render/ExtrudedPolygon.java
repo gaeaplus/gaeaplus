@@ -14,6 +14,7 @@ import gov.nasa.worldwind.exception.WWRuntimeException;
 import gov.nasa.worldwind.geom.Box;
 import gov.nasa.worldwind.geom.*;
 import gov.nasa.worldwind.globes.Globe;
+import gov.nasa.worldwind.layers.RenderAttributes;
 import gov.nasa.worldwind.ogc.kml.impl.KMLExportUtil;
 import gov.nasa.worldwind.terrain.Terrain;
 import gov.nasa.worldwind.util.*;
@@ -24,6 +25,7 @@ import javax.xml.stream.*;
 import java.io.*;
 import java.nio.*;
 import java.util.*;
+import si.xlab.gaea.core.shaders.Shader;
 
 /**
  * A multi-sided 3D shell formed by a base polygon in latitude and longitude extruded from the terrain to either a
@@ -289,6 +291,14 @@ public class ExtrudedPolygon extends AbstractShape
     protected Object previousIntersectionGlobeStateKey;
     /** The shape data used for the previous intersection calculation. */
     protected ShapeData previousIntersectionShapeData;
+
+	//X-START
+	//Vito
+	//Shader used for rendering
+	private Shader shader = null;
+	private ArrayList<Integer> drawBuffers = new ArrayList<Integer>();
+	private RenderAttributes renderAttributes = new RenderAttributes(RenderAttributes.RenderType.SPATIAL, RenderAttributes.COLOR_MODE);
+	//X-END
 
     /** Constructs an extruded polygon with an empty outer boundary and a default height of 1 meter. */
     public ExtrudedPolygon()
@@ -1247,6 +1257,11 @@ public class ExtrudedPolygon extends AbstractShape
 
         this.createMinimalGeometry(dc, this.getCurrent());
 
+		//X-START
+		//Vito
+		this.createShader(dc);
+		//X-END
+
         // If the shape is less that a pixel in size, don't render it.
         if (this.getExtent() == null || dc.isSmall(this.getExtent(), 1))
             return false;
@@ -1277,7 +1292,14 @@ public class ExtrudedPolygon extends AbstractShape
     @Override
     public void drawOutline(DrawContext dc)
     {
-        if (this.isEnableSides() && getActiveSideAttributes().isDrawOutline())
+		//X-START
+		//Vito
+		if(dc.isShadowMode()){
+			return;
+		}
+		//X-END
+        
+		if (this.isEnableSides() && getActiveSideAttributes().isDrawOutline())
             this.drawSideOutline(dc, this.getCurrent());
 
         if (this.isEnableCap() && getActiveCapAttributes().isDrawOutline())
@@ -1287,11 +1309,42 @@ public class ExtrudedPolygon extends AbstractShape
     @Override
     public void drawInterior(DrawContext dc)
     {
+		//X-START
+		//Vito
+		dc.getShaderContext().pushShader();
+		if(!dc.isShadowMode() && !dc.isPickingMode() && dc.getDeferredRenderer().isEnabled()){
+            GL2 gl = dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
+
+			if(this.shader != null && dc.getShaderContext().getCurrentShader() != this.shader){
+				this.shader.enable(dc.getShaderContext());
+				this.shader.setParam("eyeToWorld", dc.getView().getModelviewMatrix().getTranspose());
+
+				int[] drawBuffersArray = new int[drawBuffers.size()];
+				Iterator<Integer> iter = drawBuffers.iterator();
+				for (int i = 0; i < drawBuffers.size(); i++) {
+					if (iter.hasNext()) {
+						drawBuffersArray[i] = iter.next().intValue();
+					}
+				}
+
+				gl.glDrawBuffers(drawBuffersArray.length, drawBuffersArray, 0);
+			}
+		}
+		else if(dc.getShaderContext().getCurrentShader() != null){
+			dc.getShaderContext().getCurrentShader().disable(dc.getShaderContext());
+		}
+		//X-END
+
         if (this.isEnableSides() && getActiveSideAttributes().isDrawInterior())
             this.drawSideInteriors(dc, this.getCurrent());
 
         if (this.isEnableCap() && getActiveCapAttributes().isDrawInterior())
             this.drawCapInterior(dc, this.getCurrent());
+
+		//X-START
+		//Vito
+		dc.getShaderContext().popShader();
+		//X-END
     }
 
     /**
@@ -1734,6 +1787,82 @@ public class ExtrudedPolygon extends AbstractShape
             }
         }
     }
+
+	//X-START
+	//Vito
+	private void createShader(DrawContext dc){
+
+		if(shader != null){
+			return;
+		}
+		
+		dc.getShaderContext().pushShader();
+
+		shader = shader = dc.getShaderContext().getShader("DefferedColor.glsl", "#version 120\n");
+		shader.enable(dc.getShaderContext());
+
+		boolean hasTexture = false;
+		boolean hasNormals = false;
+		
+		this.renderAttributes.setRenderMode(RenderAttributes.COLOR_MODE);
+		drawBuffers.add(GL2.GL_COLOR_ATTACHMENT0);
+
+		if(this.mustCreateNormals(dc)){
+			drawBuffers.add(GL2.GL_COLOR_ATTACHMENT1);	
+			hasNormals = true;
+		}
+		if(this.mustApplyTexture(dc)){
+			shader = dc.getShaderContext().getShader("DefferedTexture.glsl", "#version 120\n");
+			shader.enable(dc.getShaderContext());
+			shader.setParam("colorSampler", 0);	
+			hasTexture = true;
+			this.renderAttributes.setRenderMode(RenderAttributes.TEXTURE_MODE);
+		}
+		if(this.mustApplyLighting(dc)){
+			drawBuffers.add(GL2.GL_COLOR_ATTACHMENT2);
+			shader = dc.getShaderContext().getShader("DefferedObject.glsl", "");
+			shader.enable(dc.getShaderContext());
+			shader.setParam("colorSampler", 0);
+			if(hasTexture){
+				shader.setParam("useTexture", new float[]{1.0f});
+			}	
+			else{
+				shader.setParam("useTexture", new float[]{0.0f});
+			}
+		}
+
+		if(dc.getShaderContext().isShaderVersionSupported(1.5f) && !hasNormals){
+			//TODO: solve problem with different geometry types
+			//		GLSL supports only points, lines and triangles
+			//		using polygons and other geometry types should be avoided!
+			drawBuffers.add(GL2.GL_COLOR_ATTACHMENT1);	
+			shader = dc.getShaderContext().getShader("DefferedObject.glsl", "#version 150 compatibility\n");
+			shader.enable(dc.getShaderContext());
+			shader.setParam("colorSampler", 0);
+			shader.setParam("bumpSampler", 1);
+
+			GL3 gl3 = dc.getGL().getGL3();
+			gl3.glBindFragDataLocation(shader.getProgram(), drawBuffers.indexOf(GL2.GL_COLOR_ATTACHMENT0), "f_color");
+			gl3.glBindFragDataLocation(shader.getProgram(), drawBuffers.indexOf(GL2.GL_COLOR_ATTACHMENT1), "f_normal");
+			gl3.glBindFragDataLocation(shader.getProgram(), drawBuffers.indexOf(GL2.GL_COLOR_ATTACHMENT2), "f_material");
+
+			if(hasTexture){
+				shader.setParam("useTexture", new float[]{1.0f});
+			}	
+			else{
+				shader.setParam("useTexture", new float[]{0.0f});
+			}
+		}
+
+		dc.getShaderContext().popShader();
+	}
+
+	@Override
+	protected void addOrderedRenderable(DrawContext dc) {
+		dc.addOrderedRenderable(this, this.renderAttributes, false);
+	}
+
+	//X-END
 
     /**
      * Compute the cap geometry.

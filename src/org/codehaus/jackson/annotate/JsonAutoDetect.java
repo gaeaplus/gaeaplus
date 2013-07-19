@@ -107,28 +107,48 @@ public @interface JsonAutoDetect
      * methods. As such, this property can be considered <b>deprecated</b> and
      * only retained for backwards compatibility.
      */
-    JsonMethod[] value() default { JsonMethod.ALL };
+    //X-PATCH Marjan
+    //annotation class referenced by package.name.ClassName to work around the bug in some JDKs
+    JsonMethod[] value() default { org.codehaus.jackson.annotate.JsonMethod.ALL };
+    //X-ORIG
+    //JsonMethod[] value() default { JsonMethod.ALL };
+    //X-END Marjan
     
     /**
      * Minimum visibility required for auto-detecting regular getter methods.
      * 
      * @since 1.5
      */
-    Visibility getterVisibility() default Visibility.DEFAULT;
+    //X-PATCH Marjan
+    //annotation class referenced by package.name.ClassName to work around the bug in some JDKs
+    Visibility getterVisibility() default org.codehaus.jackson.annotate.JsonAutoDetect.Visibility.DEFAULT;
+    //X-ORIG
+    //Visibility getterVisibility() default org.codehaus.jackson.annotateJsonAutoDetect.Visibility.DEFAULT;
+    //X-END
 
     /**
      * Minimum visibility required for auto-detecting is-getter methods.
      * 
      * @since 1.5
      */
-    Visibility isGetterVisibility() default Visibility.DEFAULT;
+    //X-PATCH Marjan
+    //annotation class referenced by package.name.ClassName to work around the bug in some JDKs
+    Visibility isGetterVisibility() default org.codehaus.jackson.annotate.JsonAutoDetect.Visibility.DEFAULT;
+    //X-ORIG
+    //Visibility isGetterVisibility() default Visibility.DEFAULT;
+    //X-END
     
     /**
      * Minimum visibility required for auto-detecting setter methods.
      * 
      * @since 1.5
      */    
-    Visibility setterVisibility() default Visibility.DEFAULT;
+    //X-PATCH Marjan
+    //annotation class referenced by package.name.ClassName to work around the bug in some JDKs
+    Visibility setterVisibility() default org.codehaus.jackson.annotate.JsonAutoDetect.Visibility.DEFAULT;
+    //X-ORIG
+    //Visibility setterVisibility() default Visibility.DEFAULT;
+    //X-END
 
     /**
      * Minimum visibility required for auto-detecting Creator methods,
@@ -137,12 +157,23 @@ public @interface JsonAutoDetect
      * 
      * @since 1.5
      */
-    Visibility creatorVisibility() default Visibility.DEFAULT;
+    //X-PATCH Marjan
+    //annotation class referenced by package.name.ClassName to work around the bug in some JDKs
+    Visibility creatorVisibility() default org.codehaus.jackson.annotate.JsonAutoDetect.Visibility.DEFAULT;
+    //X-ORIG
+    //Visibility creatorVisibility() default Visibility.DEFAULT;
+    //X-END
 
     /**
      * Minimum visibility required for auto-detecting member fields.
      * 
      * @since 1.5
      */ 
-    Visibility fieldVisibility() default Visibility.DEFAULT;
+    //X-PATCH Marjan
+    //annotation class referenced by package.name.ClassName to work around the bug in some JDKs
+    Visibility fieldVisibility() default org.codehaus.jackson.annotate.JsonAutoDetect.Visibility.DEFAULT;
+    //X-ORIG
+    //Visibility fieldVisibility() default Visibility.DEFAULT;
+    //X-END
+
 }

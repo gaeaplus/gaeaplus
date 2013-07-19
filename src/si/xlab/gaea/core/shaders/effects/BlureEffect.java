@@ -48,8 +48,8 @@ public class BlureEffect extends AbstractEffect{
 		float pixelHDist = ((float)(1.0d/this.height)) * 3;
 		float pixelWDist = ((float)(1.0d/this.width)) * 3;
 
-		framebuffer.attachTexture(dc, textureBlure0, GL2.GL_COLOR_ATTACHMENT0, 0);
-		framebuffer.attachTexture(dc, textureBlure1, GL2.GL_COLOR_ATTACHMENT1, 0);
+		framebuffer.attachTexture2D(dc, GL2.GL_COLOR_ATTACHMENT0, textureBlure0, GL.GL_TEXTURE_2D);
+		framebuffer.attachTexture2D(dc, GL2.GL_COLOR_ATTACHMENT1, textureBlure1, GL.GL_TEXTURE_2D);
 		framebuffer.isComplete(dc, false);
 
 		gl.glActiveTexture(GL.GL_TEXTURE0);

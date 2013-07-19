@@ -8,6 +8,7 @@ package gov.nasa.worldwind.render;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.util.texture.TextureCoords;
 import gov.nasa.worldwind.*;
+import gov.nasa.worldwind.avlist.AVKey;
 import gov.nasa.worldwind.cache.GpuResourceCache;
 import gov.nasa.worldwind.geom.*;
 import gov.nasa.worldwind.globes.Globe;
@@ -97,6 +98,7 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
 //    protected Map<String, GroupingFilter> groupingFilters;
 
     //X-START
+	private OrderedRenderablesContainer orderedRenderablesContainer = new OrderedRenderablesContainer();
 	private DeferredRenderer deferredRenderer;
 	private FrameBufferController framebufferController = new FrameBufferController();
 	private ShaderContext sc;
@@ -107,8 +109,52 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
     private boolean isAerialPerspectiveEnabled = false;
 	private boolean isRecordingMode = false;
     
-    private Vec4 sunPosition = Vec4.UNIT_Z;
+    private Vec4 sunlightDirection = Vec4.UNIT_Z;
+
+	private double terrainTopologyDetail = 0.0;
+	private double terrainTexturesDetail = 0.0;
     //X-END
+
+	//X-START
+	//Vito
+	protected static class OrderedRenderablesContainer {
+
+		protected HashMap<RenderAttributes.RenderType, PriorityQueue<OrderedRenderableEntry>> orderedRenderables =
+				new HashMap<RenderAttributes.RenderType, PriorityQueue<OrderedRenderableEntry>>();
+
+		public OrderedRenderablesContainer() {
+			for(RenderAttributes.RenderType rt : RenderAttributes.RenderType.values()){
+				PriorityQueue<OrderedRenderableEntry> queue;
+				queue = new PriorityQueue<OrderedRenderableEntry>(100, new Comparator<OrderedRenderableEntry>(){
+					@Override
+					public int compare(OrderedRenderableEntry orA, OrderedRenderableEntry orB)
+					{
+						double eA = orA.distanceFromEye;
+						double eB = orB.distanceFromEye;
+
+						return eA > eB ? -1 : eA == eB ? (orA.time < orB.time ? -1 : orA.time == orB.time ? 0 : 1) : 1;
+					}
+				}); 
+				orderedRenderables.put(rt, queue);
+			}
+		}
+
+		public void add(OrderedRenderableEntry ore){
+			PriorityQueue<OrderedRenderableEntry> queue = orderedRenderables.get(ore.getRenderAttributes().getRenderType());
+			queue.add(ore);
+		}
+
+		public PriorityQueue<OrderedRenderableEntry> getPriorityQueue(RenderAttributes.RenderType type){
+			return orderedRenderables.get(type);
+		}
+
+		public void clearAll(){
+			for(PriorityQueue<OrderedRenderableEntry> pq : orderedRenderables.values()){
+				pq.clear();	
+			}
+		}
+	}
+	//X-END
 
     protected static class OrderedRenderableEntry
     {
@@ -116,21 +162,42 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
         protected double distanceFromEye;
         protected long time;
 
-        public OrderedRenderableEntry(OrderedRenderable orderedRenderable, long insertionTime)
+		//X-START
+		protected RenderAttributes renderAttributes;
+		//X-END
+
+		//X-START
+		//Vito
+		//RenderAttributes parameter added.
+        public OrderedRenderableEntry(OrderedRenderable orderedRenderable, RenderAttributes renderAttributes, long insertionTime)
         {
             this.or = orderedRenderable;
             this.distanceFromEye = orderedRenderable.getDistanceFromEye();
             this.time = insertionTime;
+			this.renderAttributes = renderAttributes;
         }
 
-        public OrderedRenderableEntry(OrderedRenderable orderedRenderable, double distanceFromEye, long insertionTime)
+        public OrderedRenderableEntry(OrderedRenderable orderedRenderable, RenderAttributes renderAttributes, 
+										double distanceFromEye, long insertionTime)
         {
             this.or = orderedRenderable;
             this.distanceFromEye = distanceFromEye;
             this.time = insertionTime;
+			this.renderAttributes = renderAttributes;
         }
+
+		//getter for RenderAttributes
+		public RenderAttributes getRenderAttributes(){
+			return this.renderAttributes;
+		}
+
+		//X-END
     }
 
+	//X-START
+	//Vito
+	//replaced with OrderedRenderablesContainer
+	/*
     protected PriorityQueue<OrderedRenderableEntry> orderedRenderables =
         new PriorityQueue<OrderedRenderableEntry>(100, new Comparator<OrderedRenderableEntry>()
         {
@@ -142,6 +209,9 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
                 return eA > eB ? -1 : eA == eB ? (orA.time < orB.time ? -1 : orA.time == orB.time ? 0 : 1) : 1;
             }
         });
+	*/
+	//X-END
+
     // Use a standard Queue to store the ordered surface object renderables. Ordered surface renderables are processed
     // in the order they were submitted.
     protected Queue<OrderedRenderable> orderedSurfaceRenderables = new ArrayDeque<OrderedRenderable>();
@@ -227,8 +297,15 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
 
         this.pickedObjects.clear();
         this.objectsInPickRect.clear();
-        this.orderedRenderables.clear();
-        this.orderedSurfaceRenderables.clear();
+		
+		//X-START
+		//Vito
+		this.orderedRenderablesContainer.clearAll();
+		//old code
+        //this.orderedRenderables.clear();
+		//X-END
+        
+		this.orderedSurfaceRenderables.clear();
         this.uniquePickNumber = 0;
         this.deepPickingMode = false;
         this.redrawRequested = 0;
@@ -671,7 +748,13 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
             return; // benign event
         }
 
-        this.orderedRenderables.add(new OrderedRenderableEntry(orderedRenderable, System.nanoTime()));
+		//X-START
+		//Vito
+		//add OrderedRenderable to OrderedRenderableContainer
+		//RenderAttributes parameter added.
+        this.orderedRenderablesContainer.add(new OrderedRenderableEntry(orderedRenderable, 
+				new RenderAttributes(RenderAttributes.RenderType.SCREEN, RenderAttributes.TEXTURE_MODE), System.nanoTime()));
+		//X-END
     }
 
     /** {@inheritDoc} */
@@ -689,22 +772,76 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
         // If multiple ordered renderables are added in this way, they are drawn according to the order in which they
         // are added.
         double eyeDistance = isBehind ? Double.MAX_VALUE : orderedRenderable.getDistanceFromEye();
-        this.orderedRenderables.add(new OrderedRenderableEntry(orderedRenderable, eyeDistance, System.nanoTime()));
+		
+		//X-START
+		//Vito
+		//add OrderedRenderable to OrderedRenderableContainer
+		//RenderAttributes parameter added.
+        this.orderedRenderablesContainer.add(new OrderedRenderableEntry(orderedRenderable, 
+				new RenderAttributes(RenderAttributes.RenderType.SCREEN, RenderAttributes.TEXTURE_MODE), eyeDistance, System.nanoTime()));
+		//X-END
+    }
+
+	//X-START
+	//Vito
+	public void addOrderedRenderable(OrderedRenderable orderedRenderable, RenderAttributes renderAttributes, boolean isBehind)
+    {
+        if (null == orderedRenderable)
+        {
+            String msg = Logging.getMessage("nullValue.OrderedRenderable");
+            Logging.logger().warning(msg);
+            return; // benign event
+        }
+        // If the caller has specified that the ordered renderable should be treated as behind other ordered
+        // renderables, then treat it as having an eye distance of Double.MAX_VALUE and ignore the actual eye distance.
+        // If multiple ordered renderables are added in this way, they are drawn according to the order in which they
+        // are added.
+        double eyeDistance = isBehind ? Double.MAX_VALUE : orderedRenderable.getDistanceFromEye();
+
+        this.orderedRenderablesContainer.add(
+				new OrderedRenderableEntry(orderedRenderable, renderAttributes, eyeDistance, System.nanoTime()));
+    }
+
+	public List<OrderedRenderable> getOrderedRenderables(RenderAttributes.RenderType renderType){
+		//make copy
+		PriorityQueue<OrderedRenderableEntry> queue = 
+				new PriorityQueue<OrderedRenderableEntry>(this.orderedRenderablesContainer.getPriorityQueue(renderType));
+		
+		List<OrderedRenderable> out = new ArrayList<OrderedRenderable>();
+
+		OrderedRenderableEntry ore = queue.peek(); 
+		while (ore != null) {
+			out.add(queue.poll().or);
+			ore = queue.peek();
+		}
+		return out;
+	}
+
+	public OrderedRenderable peekOrderedRenderables(RenderAttributes.RenderType type)
+    {
+        OrderedRenderableEntry ore = this.orderedRenderablesContainer.getPriorityQueue(type).peek();
+        return ore != null ? ore.or : null;
+    }
+
+    public OrderedRenderable pollOrderedRenderables(RenderAttributes.RenderType type)
+    {
+        OrderedRenderableEntry ore = this.orderedRenderablesContainer.getPriorityQueue(type).poll();
+        return ore != null ? ore.or : null;
     }
 
     public OrderedRenderable peekOrderedRenderables()
     {
-        OrderedRenderableEntry ore = this.orderedRenderables.peek();
-
+        OrderedRenderableEntry ore = this.orderedRenderablesContainer.getPriorityQueue(RenderAttributes.RenderType.SCREEN).peek();
         return ore != null ? ore.or : null;
     }
 
     public OrderedRenderable pollOrderedRenderables()
     {
-        OrderedRenderableEntry ore = this.orderedRenderables.poll();
-
+        OrderedRenderableEntry ore = this.orderedRenderablesContainer.getPriorityQueue(RenderAttributes.RenderType.SCREEN).poll();
         return ore != null ? ore.or : null;
     }
+	//X-EMD
+
 //
 //    public void applyDeclutterFilter2()
 //    {
@@ -762,14 +899,22 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
         return this.clutterFilter;
     }
 
-    public void applyClutterFilter()
+	//X-START
+	//Vito
+	//parameter RenderAttributes.RenderType added
+	//this method now uses OrderedRenderableContainer
+    public void applyClutterFilter(RenderAttributes.RenderType renderType)
     {
         if (this.getClutterFilter() == null)
             return;
 
+		//Vito
+		//get priority queue and use it
+		PriorityQueue<OrderedRenderableEntry> orderedRenderables = this.orderedRenderablesContainer.getPriorityQueue(renderType);
+
         // Collect all the active declutterables.
         ArrayList<OrderedRenderableEntry> declutterableArray = new ArrayList<OrderedRenderableEntry>();
-        for (OrderedRenderableEntry ore : this.orderedRenderables)
+        for (OrderedRenderableEntry ore : orderedRenderables)
         {
             if (ore.or instanceof Declutterable && ((Declutterable) ore.or).isEnableDecluttering())
                 declutterableArray.add(ore);
@@ -804,6 +949,7 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
         // Tell the filter to apply itself and draw whatever it draws.
         this.getClutterFilter().apply(this, declutterables);
     }
+	//X-END
 
     /** {@inheritDoc} */
     public void addOrderedSurfaceRenderable(OrderedRenderable orderedRenderable)
@@ -1583,6 +1729,55 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
     }
     
     //X-START
+
+	/**
+	 * Set terrain topology detail hint.
+	 * Values greater than zero increase the quality. 
+	 * Values less than zero decrease the quality.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	@Override
+	public void setTerrainTopologyDetail(double detailHint){
+		this.terrainTopologyDetail = detailHint;	
+		this.firePropertyChange(AVKey.REPAINT, null, null);
+	}
+
+	/**
+	 * Set terrain images detail hint (resolution).
+	 * Values greater than zero increase the resolution. 
+	 * Values less than zero decrease the resolution.
+	 * The default value is 0.
+	 * 
+	 * @param detailHint between -1 and 1. Default value is 0;
+	 */
+	@Override
+	public void setTerrainTexturesDetail(double detailHint){
+		this.terrainTexturesDetail = detailHint;		
+		this.firePropertyChange(AVKey.REPAINT, null, null);
+	}
+
+	/**
+	 * Get terrain topology detail hint.
+	 * 
+	 * @return detail hint in range from -1, 1. Default value is 0.
+	 */
+	@Override
+	public double getTerrainTopologyDetail(){
+		return this.terrainTopologyDetail;
+	}
+	
+	/**
+	 * Get terrain textures detail hint.
+	 * 
+	 * @return detail hint in range from -1, 1. Default value is 0.
+	 */
+	@Override
+	public double getTerrainTexturesDetail(){
+		return this.terrainTexturesDetail;
+	}
+	
     /**
      * FramebufferState is used to cache and manipulate offscreen frame buffers.
      *
@@ -1737,7 +1932,7 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
 		double cR = eye.getLength3();
 
 		double maxAngle = Math.PI - Math.asin(eR/cR);
-		double angle = eye.angleBetween3(this.getSunPosition().getNegative3()).radians;
+		double angle = eye.angleBetween3(this.getSunlightDirection().getNegative3()).radians;
 
 		double pow = 4.5;
 		double fac = 0.65;
@@ -1745,12 +1940,14 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
 		return (float)(2.2f * (0.06d + Math.pow(Math.min(angle/maxAngle, 3.8d) * fac, pow)));
 	}
     
-    public void setSunPosition(Vec4 sunPosition){
-		this.sunPosition = sunPosition;
+	@Override
+    public void setSunlightDirection(Vec4 sunlightDirection){
+		this.sunlightDirection = sunlightDirection;
 	}
 
-	public Vec4 getSunPosition(){
-		return this.sunPosition;
+	@Override
+	public Vec4 getSunlightDirection(){
+		return this.sunlightDirection;
 	}
     
 	//X-END

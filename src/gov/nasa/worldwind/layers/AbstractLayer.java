@@ -34,9 +34,9 @@ public abstract class AbstractLayer extends WWObjectImpl implements Layer
     
     //X-START
     //Vito
-    private LayerRenderAttributes renderAttributes = new LayerRenderAttributes();
+    private RenderAttributes renderAttributes = new RenderAttributes();
 
-    public LayerRenderAttributes getRenderAttributes(){
+    public RenderAttributes getRenderAttributes(){
         return this.renderAttributes;
     }
     //X-END
