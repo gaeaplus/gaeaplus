@@ -376,18 +376,6 @@ public class GaeaSceneController extends AbstractSceneController {
 				MeasureRenderTime.startMeasure(dc, "deferredRenderer");
 				deferredRenderer.begin(dc);
 
-				//render depth
-				GL gl = dc.getGL();
-				gl.glColorMask(false, false, false, false);
-				dc.getSurfaceGeometry().beginRendering(dc);
-				for (SectorGeometry sg : dc.getSurfaceGeometry()) {
-					sg.beginRendering(dc, 0);
-					sg.renderMultiTexture(dc, 0, true);
-					sg.endRendering(dc);
-				}
-				dc.getSurfaceGeometry().endRendering(dc);
-				gl.glColorMask(true, true, true, true);
-
 				MeasureRenderTime.startMeasure(dc, "normalMap");
 				deferredRenderer.renderTerrainNormals(dc);
 				MeasureRenderTime.stopMeasure(dc);

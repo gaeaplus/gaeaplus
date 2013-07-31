@@ -4,15 +4,16 @@ import gov.nasa.worldwind.Configuration;
 import gov.nasa.worldwind.WorldWindow;
 import gov.nasa.worldwind.geom.Angle;
 import gov.nasa.worldwind.geom.Sector;
+import gov.nasa.worldwind.layers.Layer;
 import gov.nasa.worldwind.ogc.kml.KMLStyle;
+import gov.nasa.worldwind.render.DrawContext;
 import gov.nasa.worldwindx.examples.ApplicationTemplate;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
-import java.util.Calendar;
+import java.util.ArrayList;
 import javax.swing.AbstractAction;
 import javax.swing.ButtonGroup;
-import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JDialog;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -22,6 +23,8 @@ import javax.swing.JRadioButtonMenuItem;
 import si.xlab.gaea.avlist.AvKeyExt;
 import si.xlab.gaea.core.event.FeatureSelectListener;
 import si.xlab.gaea.core.layers.RenderToTextureLayer;
+import si.xlab.gaea.core.layers.elev.ElevationLayer;
+import si.xlab.gaea.core.layers.elev.SlopeLayer;
 import si.xlab.gaea.core.layers.wfs.WFSGenericLayer;
 import si.xlab.gaea.core.layers.wfs.WFSService;
 import si.xlab.gaea.core.ogc.kml.KMLStyleFactory;
@@ -101,13 +104,32 @@ public class GaeaApplicationExample extends ApplicationTemplate
         optionsMenu.add(wwShading);
         optionsGroup.add(wwShading);
         JMenuItem gaeaShading = new ShadingItem(new boolean[]{true, true, true, false}, "Advanced Gaea+ shading");
-        gaeaShading.setSelected(true);
         optionsMenu.add(gaeaShading);
         optionsGroup.add(gaeaShading);
         JMenuItem shadows = new ShadingItem(new boolean[]{true, true, true, true}, "Advanced Gaea+ shading with shadows");
         optionsMenu.add(shadows);
         optionsGroup.add(shadows);
-        shadows.doClick();
+
+        //depending on support for advanced shading, enable/disable menu items and select appropriate shading model
+        boolean gaeaShadingSupported = isGaeaShadingSupported(appFrame.getWwd());
+        gaeaShading.setEnabled(gaeaShadingSupported);
+        shadows.setEnabled(gaeaShadingSupported);
+        if (gaeaShadingSupported)
+            gaeaShading.doClick();
+        else 
+        {
+            wwShading.doClick();
+            //if gaea shading is not supported by GPU/driver, we also have to remove the run-time calculated layers
+            ArrayList<Layer> unsupportedLayers = new ArrayList<Layer>();
+            for (Layer layer: appFrame.getWwd().getModel().getLayers())
+            {
+                if (layer instanceof SlopeLayer || layer instanceof ElevationLayer)
+                    unsupportedLayers.add(layer);
+            }
+            appFrame.getWwd().getModel().getLayers().removeAll(unsupportedLayers);
+            if (appFrame instanceof GaeaAppFrame)
+                ((GaeaAppFrame)appFrame).updateLayerPanel();
+        }
         
         JMenu helpMenu = new JMenu("Help");
         menuBar.add(helpMenu);
@@ -120,6 +142,14 @@ public class GaeaApplicationExample extends ApplicationTemplate
                 + "For more information, visit http://www.gaeaplus.eu/en/, https://github.com/gaeaplus/gaeaplus, and http://worldwind.arc.nasa.gov/java/.";
         helpMenu.add(new MessageItem(aboutMsg, "About..."));
     }    
+    
+    private static boolean isGaeaShadingSupported(WorldWindow wwd)
+    {
+        DrawContext dc = wwd.getSceneController().getDrawContext();
+        if (dc == null || dc.getDeferredRenderer() == null)
+            return false;
+        return dc.getDeferredRenderer().isSupported(dc);
+    }
     
     private static class MessageItem extends JMenuItem
     {

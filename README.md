@@ -5,7 +5,7 @@ Gaea+ is an open source Virtual Globe based on the [NASA World Wind](http://gowo
 
 The project extends the Worldwind Java core with features crucial for advanced real-time rendering of geospatial information, including optimized Render-to-Texture capabilities enabling visualization of large vector datasets, GLSL Shader support built directly into the Worldwind render loop making custom visual effects a breeze, deferred rendering, and a flexible WFS & GML support.
 
-This project is part of the [NASA Worldwind Challenge](http://eurochallenge.como.polimi.it/). The source code will become available on June 21, 2013!
+This project has been awarded first place at the [NASA Worldwind Challenge](http://eurochallenge.como.polimi.it/).
 
 Realtime vector rendering engine
 --------------------------------
@@ -25,13 +25,14 @@ Gaea+ Open Source core is used in mission-critical emergency response systems wi
 
 Getting started
 ---------------
-Just type "ant run" and play with the example application!
+Just type "ant run" and play with the example application! Note that this is just a means to demonstrate the rendering capabilities with a very basic user interface.
 
 Known bugs
 ---------------
 1. Height map files in cache sometimes get corrupted and thus automatically deleted.
-2. Z-buffer fighting appears on some GPU/driver combinations.
- 
+2. WFS polylines are transparent and/or black on some GPU/driver combinations, e.g. Intel GMA 4500MHD.
+3. Shader compilation errors on some GPU/driver combinations. 
+
 Reaching us
 -----------
 Furhter information can be found at the [project's home page](http://gaeaplus.eu) or at info@gaeaplus.eu.
