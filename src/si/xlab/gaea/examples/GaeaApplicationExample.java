@@ -112,6 +112,7 @@ public class GaeaApplicationExample extends ApplicationTemplate
 
         //depending on support for advanced shading, enable/disable menu items and select appropriate shading model
         boolean gaeaShadingSupported = isGaeaShadingSupported(appFrame.getWwd());
+        
         gaeaShading.setEnabled(gaeaShadingSupported);
         shadows.setEnabled(gaeaShadingSupported);
         if (gaeaShadingSupported)
@@ -145,10 +146,22 @@ public class GaeaApplicationExample extends ApplicationTemplate
     
     private static boolean isGaeaShadingSupported(WorldWindow wwd)
     {
-        DrawContext dc = wwd.getSceneController().getDrawContext();
-        if (dc == null || dc.getDeferredRenderer() == null)
-            return false;
-        return dc.getDeferredRenderer().isSupported(dc);
+        DrawContext dc = null;
+        //shading is suppored if a deferredRenderer appears in dc relatively quickly AND this deferredRenderer says it is supported
+        for (int wait = 0; wait < 10; wait++)
+        {
+            dc = wwd.getSceneController().getDrawContext();
+            if (dc != null && dc.getDeferredRenderer() != null)
+            {
+                return dc.getDeferredRenderer().isSupported(dc);                        
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                //ignore
+            }
+        }
+        return false;
     }
     
     private static class MessageItem extends JMenuItem
