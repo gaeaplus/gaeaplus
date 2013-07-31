@@ -147,7 +147,10 @@ public class GaeaApplicationExample extends ApplicationTemplate
     {
         DrawContext dc = wwd.getSceneController().getDrawContext();
         if (dc == null || dc.getDeferredRenderer() == null)
+{
+System.out.println("null!!" + dc);
             return false;
+}
         return dc.getDeferredRenderer().isSupported(dc);
     }
     
