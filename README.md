@@ -27,11 +27,13 @@ Getting started
 ---------------
 Just type "ant run" and play with the example application! Note that this is just a means to demonstrate the rendering capabilities with a very basic user interface.
 
-Known bugs
+Known bugs and other info
 ---------------
 1. Height map files in cache sometimes get corrupted and thus automatically deleted.
 2. WFS polylines are transparent and/or black on some GPU/driver combinations, e.g. Intel GMA 4500MHD.
 3. Shader compilation errors on some GPU/driver combinations. 
+
+Gaea+ Open Source is currently based on WorldWind version 2.0-daily-685.1405.
 
 Reaching us
 -----------
