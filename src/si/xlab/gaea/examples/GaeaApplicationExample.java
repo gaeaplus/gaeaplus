@@ -100,7 +100,7 @@ public class GaeaApplicationExample extends ApplicationTemplate
         menuBar.add(optionsMenu);
         ButtonGroup optionsGroup = new ButtonGroup();
         
-        JMenuItem wwShading = new ShadingItem(new boolean[]{false, false, false, false}, "Default WorldWind");
+        JMenuItem wwShading = new ShadingItem(new boolean[]{false, false, false, false}, "Default World Wind");
         optionsMenu.add(wwShading);
         optionsGroup.add(wwShading);
         JMenuItem gaeaShading = new ShadingItem(new boolean[]{true, true, true, false}, "Advanced Gaea+ shading");
@@ -134,12 +134,12 @@ public class GaeaApplicationExample extends ApplicationTemplate
         
         JMenu helpMenu = new JMenu("Help");
         menuBar.add(helpMenu);
-        String licenseMsg = "This application, together with the WorldWind Java SDK and the modifications to the SDK done by XLAB d.o.o.,"
+        String licenseMsg = "This application, together with the NASA World Wind Java SDK and the modifications to the SDK done by XLAB d.o.o.,"
                 + "are distributed under the terms of NASA Open Source Agreement license.\n"
                 + "You should have received this license together with this application. If not, please contact info@geaplus.si or visit http://www.gaeaplus.eu.\n\n"
-                + "The data layers included in this application are either licensed for use in WorldWind, owned by XLAB d.o.o., or available for free from servers intended for public use.";
+                + "The data layers included in this application are either licensed for use in World Wind, owned by XLAB d.o.o., or available for free from servers intended for public use.";
         helpMenu.add(new MessageItem(licenseMsg, "Terms of use"));
-        String aboutMsg = "This is a demonstration of features that Gaea+ Open Source adds to NASA WorldWind Java SDK.\n"
+        String aboutMsg = "This is a demonstration of features that Gaea+ Open Source adds to NASA World Wind Java SDK.\n"
                 + "For more information, visit http://www.gaeaplus.eu/en/, https://github.com/gaeaplus/gaeaplus, and http://worldwind.arc.nasa.gov/java/.";
         helpMenu.add(new MessageItem(aboutMsg, "About..."));
     }    
