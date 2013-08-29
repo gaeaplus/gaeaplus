@@ -9,13 +9,11 @@ import gov.nasa.worldwind.layers.Layer;
 import gov.nasa.worldwind.layers.RenderAttributes;
 import gov.nasa.worldwind.render.DrawContext;
 import si.xlab.gaea.core.shaders.ShaderFactory;
-import gov.nasa.worldwind.terrain.SectorGeometry;
 import gov.nasa.worldwind.util.Logging;
 import gov.nasa.worldwind.util.MeasureRenderTime;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.logging.Level;
-import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLContext;
 import si.xlab.gaea.avlist.AvKeyExt;
@@ -30,6 +28,7 @@ public class GaeaSceneController extends AbstractSceneController {
 	private boolean shadowsEnabled = false;
 	private boolean atmosphereEnabled = false;
 	private boolean aerialPerspectiveEnabled = false;
+	private boolean posEffectsEnabled = false;
 	private boolean drawShadows = false;
 	private boolean drawShadowsWhenCameraStop = false;
 	private ShaderFactory shaderFactory = new GaeaShaderFactoryGLSL();
@@ -45,6 +44,7 @@ public class GaeaSceneController extends AbstractSceneController {
 		this.drawShadowsWhenCameraStop = false;
 		this.atmosphereEnabled = false;
 		this.aerialPerspectiveEnabled = false;
+		this.posEffectsEnabled = false;
 		this.isRecordingMode = false;
 
 		this.addPropertyChangeListener(new PropertyListener());
@@ -69,6 +69,9 @@ public class GaeaSceneController extends AbstractSceneController {
 			}
 			if (propertyChangeEvent.getPropertyName().equals(AvKeyExt.ENABLE_ATMOSPHERE_WITH_AERIAL_PERSPECTIVE)) {
 				GaeaSceneController.this.aerialPerspectiveEnabled = (Boolean) propertyChangeEvent.getNewValue();
+			}
+			if (propertyChangeEvent.getPropertyName().equals(AvKeyExt.ENABLE_POS_EFFECTS)) {
+				GaeaSceneController.this.posEffectsEnabled = (Boolean) propertyChangeEvent.getNewValue();
 			}
 			if (propertyChangeEvent.getPropertyName().equals(AvKeyExt.ENABLE_RECORDING_MODE)) {
 				GaeaSceneController.this.isRecordingMode = (Boolean) propertyChangeEvent.getNewValue();
@@ -105,10 +108,12 @@ public class GaeaSceneController extends AbstractSceneController {
 			isSunLightEnabled = false;
 			atmosphereEnabled = false;
 			aerialPerspectiveEnabled = false;
+			posEffectsEnabled = false;
 		}
 
 		dc.setAtmosphereEnabled(atmosphereEnabled);
 		dc.setAerialPerspectiveEnabled(aerialPerspectiveEnabled);
+		dc.setPosEffectsEnabled(posEffectsEnabled);
 		dc.setSunLightEnabled(isSunLightEnabled);
 		this.deferredRenderer.setEnabled(isSunLightEnabled);
 	}

@@ -100,13 +100,18 @@ public class GaeaApplicationExample extends ApplicationTemplate
         menuBar.add(optionsMenu);
         ButtonGroup optionsGroup = new ButtonGroup();
         
-        JMenuItem wwShading = new ShadingItem(new boolean[]{false, false, false, false}, "Default World Wind");
+        JMenuItem wwShading = new ShadingItem(new boolean[]{false, false, false, false, false}, "Default World Wind");
         optionsMenu.add(wwShading);
         optionsGroup.add(wwShading);
-        JMenuItem gaeaShading = new ShadingItem(new boolean[]{true, true, true, false}, "Advanced Gaea+ shading");
+        JMenuItem gaeaShading = new ShadingItem(new boolean[]{true, true, true, false, false}, "Advanced Gaea+ shading");
         optionsMenu.add(gaeaShading);
         optionsGroup.add(gaeaShading);
-        JMenuItem shadows = new ShadingItem(new boolean[]{true, true, true, true}, "Advanced Gaea+ shading with shadows");
+        JMenuItem gaeaShadingPosEffects = new ShadingItem(new boolean[]{true, true, true, true, false}, 
+																"Advanced Gaea+ shading with HDR, bloom and depth of field");
+        optionsMenu.add(gaeaShadingPosEffects);
+        optionsGroup.add(gaeaShadingPosEffects);
+
+        JMenuItem shadows = new ShadingItem(new boolean[]{true, true, true, true, true}, "Advanced Gaea+ shading with shadows");
         optionsMenu.add(shadows);
         optionsGroup.add(shadows);
 
@@ -114,7 +119,9 @@ public class GaeaApplicationExample extends ApplicationTemplate
         boolean gaeaShadingSupported = isGaeaShadingSupported(appFrame.getWwd());
         
         gaeaShading.setEnabled(gaeaShadingSupported);
+        gaeaShadingPosEffects.setEnabled(gaeaShadingSupported);
         shadows.setEnabled(gaeaShadingSupported);
+
         if (gaeaShadingSupported)
             gaeaShading.doClick();
         else 
@@ -201,7 +208,8 @@ public class GaeaApplicationExample extends ApplicationTemplate
                     appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_SUNLIGHT, !states[0], states[0]);
                     appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_ATMOSPHERE, !states[1], states[1]);
                     appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_ATMOSPHERE_WITH_AERIAL_PERSPECTIVE, !states[2], states[2]);
-                    appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_SHADOWS, !states[3], states[3]);
+                    appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_POS_EFFECTS, !states[3], states[3]);
+                    appFrame.getWwd().getSceneController().firePropertyChange(AvKeyExt.ENABLE_SHADOWS, !states[4], states[4]);
                 }
             });
         }

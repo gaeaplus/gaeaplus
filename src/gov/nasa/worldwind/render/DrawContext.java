@@ -1198,6 +1198,13 @@ public interface DrawContext extends WWObject, Disposable
      */
 	void setAerialPerspectiveEnabled(boolean enable);
 
+	boolean isPosEffectsEnabled();
+	
+	/**
+     * Don't set this parameter. This method should only be used in AbstractSceneController.
+     */
+	void setPosEffectsEnabled(boolean enable);
+
 	/**
      * Returns camera exposure (it is used for hdr rendering)
      *

@@ -107,6 +107,7 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
     private boolean isSunLightEnabled = false;
     private boolean isAtmosphereEnabled = false;
     private boolean isAerialPerspectiveEnabled = false;
+    private boolean isPosEffectsEnabled = false;
 	private boolean isRecordingMode = false;
     
     private Vec4 sunlightDirection = Vec4.UNIT_Z;
@@ -1900,6 +1901,22 @@ public class DrawContextImpl extends WWObjectImpl implements DrawContext
      */
 	public void setAerialPerspectiveEnabled(boolean enable){
 		this.isAerialPerspectiveEnabled = enable;
+	}
+
+	/**
+     * Returns true if aerial perspective is enabled, otherwise return false
+     *
+     * @return true if aerial perspective is enabled, otherwise false
+     */
+	public boolean isPosEffectsEnabled(){
+		return isPosEffectsEnabled;
+	}
+
+	/**
+     * Don't set this parameter. This method should only be used in AbstractSceneController.
+     */
+	public void setPosEffectsEnabled(boolean enable){
+		this.isPosEffectsEnabled = enable;
 	}
 
 	/**

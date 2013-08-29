@@ -6,10 +6,8 @@ import gov.nasa.worldwind.layers.Layer;
 import gov.nasa.worldwind.render.DrawContext;
 import si.xlab.gaea.core.shaders.Shader;
 import gov.nasa.worldwind.util.FrameBuffer;
-import gov.nasa.worldwind.util.Logging;
 import java.awt.Rectangle;
 import java.nio.FloatBuffer;
-import java.util.logging.Logger;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import si.xlab.gaea.core.layers.atm.Atmosphere;
@@ -35,7 +33,7 @@ public class GlobalLighting
     
     private boolean useShadowVolume = false;
     private boolean enableBloom = true;
-    private boolean enablePosEffects = true;
+    private boolean enableBlureDistance = true;
     
     private final FrameBuffer frambufferIntensity;
     private float intensityAveLast = 0.0f;
@@ -167,11 +165,10 @@ public class GlobalLighting
             viewport = new Rectangle(dr.getDrawableWidth(), dr.getDrawableHeight());
             createResizeFbo(gl);
             createResizeScreenTexture(dc, usageTexture);
-            if (enablePosEffects)
-            {
-                createResizeScreenTextureHDR(dc, finalTextureHDR);
-                createResizeScreenTexture(dc, finalTexture);
-            }
+
+			//used only for pos-effects
+            createResizeScreenTextureHDR(dc, finalTextureHDR);
+            createResizeScreenTexture(dc, finalTexture);
         }
 
         if (dc.isAerialPerspectiveEnabled() && useShadowVolume)
@@ -242,7 +239,7 @@ public class GlobalLighting
 
         ////////////////test new postProcessing//////////////
 
-        if (enablePosEffects)
+        if (dc.isPosEffectsEnabled())
         {
 
             //render to offscreen framebuffer
@@ -285,7 +282,7 @@ public class GlobalLighting
 
             //render postprocessing effects//
             postProcessing.setBloom(this.enableBloom);
-            postProcessing.setBlureDistance(this.enableBloom);
+            postProcessing.setBlureDistance(this.enableBlureDistance);
             postProcessing.setDepthTexture(dr.getDepthTexture());
             postProcessing.setIntensity(intensity);
             postProcessing.setTexture(finalTextureHDR[0],
@@ -469,7 +466,7 @@ public class GlobalLighting
         Shader shader;
 
         String glslOptions = "#version 120\n" + atmosphere.getParamCode();
-        glslOptions += enablePosEffects ? "#define _POSEFFECTS_ \n" : "";
+        glslOptions += dc.isPosEffectsEnabled() ? "#define _POSEFFECTS_ \n" : "";
 
         shader = dc.getShaderContext().getShader("Atmosphere_1.glsl", glslOptions);
         shader.enable(dc.getShaderContext());
@@ -496,14 +493,14 @@ public class GlobalLighting
     public void renderTerrain(DrawContext dc)
     {
 
+		String glslOptions = "#version 120\n";
+        glslOptions += dc.isPosEffectsEnabled() ? "#define _POSEFFECTS_ \n" : "";
+        glslOptions += dc.isShadowsEnabled() ? "#define _SHADOW_ \n" : "";
+        glslOptions += (useShadowVolume && dc.isShadowsEnabled()) ? "#define _SHADOW_VOLUME_ \n" : "";
+		
         Shader shader;
-        if (dc.isShadowsEnabled())
-        {
-            shader = dc.getShaderContext().getShader("TerrainLighting_1.glsl", "#version 120\n #define _SHADOW_\n");
-        } else
-        {
-            shader = dc.getShaderContext().getShader("TerrainLighting_1.glsl", "#version 120\n");
-        }
+        shader = dc.getShaderContext().getShader("TerrainLighting_1.glsl", glslOptions);
+			
         shader.enable(dc.getShaderContext());
 
         if (dc.isShadowsEnabled())
@@ -527,6 +524,10 @@ public class GlobalLighting
                 {
                     (float) dc.getView().getFarClipDistance()
                 });
+		shader.setParam("exposure", new float[]
+                {
+                    calcExposure(dc)
+                });
 
         dc.getView().pushReferenceCenter(dc, Vec4.ZERO);
         drawQuadTex(dc.getGL().getGL2());
@@ -539,7 +540,7 @@ public class GlobalLighting
         Shader shader;
 
         String glslOptions = "#version 120\n" + atmosphere.getParamCode();
-        glslOptions += enablePosEffects ? "#define _POSEFFECTS_ \n" : "";
+        glslOptions += dc.isPosEffectsEnabled() ? "#define _POSEFFECTS_ \n" : "";
         glslOptions += dc.isShadowsEnabled() ? "#define _SHADOW_ \n" : "";
         glslOptions += (useShadowVolume && dc.isShadowsEnabled()) ? "#define _SHADOW_VOLUME_ \n" : "";
 

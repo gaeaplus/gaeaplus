@@ -35,8 +35,6 @@ public class HTTPRetriever extends URLRetriever
         return this.responseMessage;
     }
 
-    private static final Object proxyLock = new Object();
-    
     protected ByteBuffer doRead(URLConnection connection) throws Exception
     {
         if (connection == null)
@@ -47,10 +45,7 @@ public class HTTPRetriever extends URLRetriever
         }
 
         HttpURLConnection htpc = (HttpURLConnection) connection;
-        synchronized (proxyLock) 
-        {
-            this.responseCode = htpc.getResponseCode();
-        }
+        this.responseCode = htpc.getResponseCode();
         this.responseMessage = htpc.getResponseMessage();
         String contentType = connection.getContentType();
 

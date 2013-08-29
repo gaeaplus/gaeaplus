@@ -20,5 +20,6 @@ public interface AvKeyExt extends AVKey
 	final String ENABLE_SHADOWS_ON_CAMERA_STOP = "si.xlab.gaea.core.GaeaSceneController.enableShadowsOnCameraStop";
 	final String ENABLE_ATMOSPHERE = "si.xlab.gaea.core.GaeaSceneController.enableAtmosphere";
 	final String ENABLE_ATMOSPHERE_WITH_AERIAL_PERSPECTIVE = "si.xlab.gaea.core.GaeaSceneController.enableAerialPerspective";
+	final String ENABLE_POS_EFFECTS = "si.xlab.gaea.core.GaeaSceneController.enablePosEffects";
 	final String ENABLE_RECORDING_MODE = "si.xlab.gaea.core.GaeaSceneController.enableRecordingMode";
 }

@@ -7,6 +7,7 @@ uniform vec4 cameraWorldPosition;
 
 uniform float zNear;
 uniform float zFar;
+uniform float exposure;
 
 uniform sampler2D colorSampler;
 uniform sampler2D normalSampler;
@@ -41,7 +42,7 @@ void main()
 	vE /= vE.w;
 	vec3 vW = cameraWorldPosition.xyz + normalize(ray) * dep;
 
-	vec4 color = texture2D(colorSampler, coords);
+	vec3 color = texture2D(colorSampler, coords).rgb;
 	
 	/////////diffuse & specular//////////
 	vec4 normal = getNormal(normalSampler, coords);
@@ -61,9 +62,14 @@ void main()
 	shadow = clamp(shadow, 0.0, 1.0);
 
 	vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-	vec3 colorLight = (shadow * diffuse * lightColor + ambientLight) * color.rgb;
-	gl_FragColor = vec4(colorLight, 1.0);
+	vec3 outColor = 0.8 * pow(color, vec3(2.5)) * (shadow * diffuse * lightColor + ambientLight) * ISun / M_PI;
+	
+#ifdef _POSEFFECTS_
+	float intensity = (outColor.r + outColor.g + outColor.b)/3.0; 
+	gl_FragColor = vec4(outColor, intensity);
+#else
+	gl_FragColor = vec4(HDR(outColor, exposure), 1.0);
 	gl_FragDepth = depth;
-	//gl_FragColor = vec4(texture2D(normalSampler, coords).xyz, 1.0);
+#endif
 }
 #endif
