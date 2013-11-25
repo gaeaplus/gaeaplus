@@ -9,7 +9,6 @@ import gov.nasa.worldwind.Disposable;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -181,16 +180,16 @@ public class BasicGLSLCompiler implements Disposable{
 	}
 
 	private void printGLLog(GL2 gl, GLU glu){
-		int er = 0;
-		while(er == 0){
+		while(true){
 			int error = gl.glGetError();
-			if(error != GL2.GL_NO_ERROR)
+			
+			if(error == GL2.GL_NO_ERROR)
 			{
-				String msg = "OpenGL error number: " + error + " description: "+ glu.gluErrorString(er);
-				logger.severe(msg);
+				break;
 			}
 			else{
-				er = 1;
+				String msg = "OpenGL error number: " + error + " description: "+ glu.gluErrorString(error);
+				logger.severe(msg);
 			}
 		}
 	}
@@ -313,7 +312,7 @@ public class BasicGLSLCompiler implements Disposable{
 			}
 			catch(IOException e){
 				logger.log(Level.SEVERE, "Error reading shader: {0}", fileUrl.getFile());
-				logger.log(Level.SEVERE, "Error message: " + e.getMessage());
+				logger.log(Level.SEVERE, "Error message: {0}", e.getMessage());
 				return false;
 			}
 			

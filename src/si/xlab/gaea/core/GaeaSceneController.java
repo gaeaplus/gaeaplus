@@ -105,16 +105,17 @@ public class GaeaSceneController extends AbstractSceneController {
 		
 		if(isSunLightEnabled && !dc.getDeferredRenderer().isSupported(dc)){
 			logger.severe("Disabling effects. DeferredRenderer not supported!");
-			isSunLightEnabled = false;
 			atmosphereEnabled = false;
 			aerialPerspectiveEnabled = false;
 			posEffectsEnabled = false;
+			isSunLightEnabled = false;
 		}
 
 		dc.setAtmosphereEnabled(atmosphereEnabled);
 		dc.setAerialPerspectiveEnabled(aerialPerspectiveEnabled);
 		dc.setPosEffectsEnabled(posEffectsEnabled);
 		dc.setSunLightEnabled(isSunLightEnabled);
+
 		this.deferredRenderer.setEnabled(isSunLightEnabled);
 	}
 

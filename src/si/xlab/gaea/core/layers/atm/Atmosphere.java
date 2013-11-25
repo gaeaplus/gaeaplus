@@ -1,12 +1,8 @@
 package si.xlab.gaea.core.layers.atm;
 
 import com.jogamp.common.nio.Buffers;
-import gov.nasa.worldwind.Configuration;
 import gov.nasa.worldwind.WorldWind;
 import gov.nasa.worldwind.render.DrawContext;
-import gov.nasa.worldwind.retrieve.HTTPRetriever;
-import gov.nasa.worldwind.retrieve.RetrievalPostProcessor;
-import gov.nasa.worldwind.retrieve.Retriever;
 import si.xlab.gaea.core.shaders.BasicShaderFactory;
 import si.xlab.gaea.core.shaders.Shader;
 import si.xlab.gaea.core.shaders.ShaderContext;
@@ -14,7 +10,6 @@ import si.xlab.gaea.core.shaders.ShaderFactory;
 import gov.nasa.worldwind.util.WWIO;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.Buffer;
@@ -22,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
+import si.xlab.gaea.avlist.AvKeyExt;
 
 /**
  *
@@ -29,9 +25,7 @@ import javax.media.opengl.GL2;
  */
 public class Atmosphere extends BasicShaderFactory
 {
-    private HTTPDownloader downloader = new HTTPDownloader();
-    
-	private boolean init = true;
+    private final Object fileLock = new Object();
     private boolean texturesDone = false;
     
 	private final float Rg = 6360.0f;
@@ -479,43 +473,27 @@ public class Atmosphere extends BasicShaderFactory
 
     public void precompute(DrawContext dc)
     {
-
         GL2 gl = dc.getGL().getGL2();
+
+		if(isTexturesDone()){
+			return;
+		}
 
         pushState(gl);
         gl.glMatrixMode(GL2.GL_PROJECTION);
         gl.glViewport(0, 0, dc.getDrawableWidth(), dc.getDrawableHeight());
 
-        boolean hasGeomShader = true;
-
-        if (texturesDone)
-        {
-            doRecompute(dc);
-            saveTextures(gl);
-        } else
-        {
-
-            if (!downloader.isDone() && downloader.isReading())
-            {
-                return;
-            }
-
-            if (!loadData(gl))
-            {
-                if (hasGeomShader)
-                {
-                    doPrecompute(dc);
-                    saveTextures(gl);
-                } 
-				else if(!downloader.hasError())
-                {
-                    downloader.requestTextures();
-                }
-            } else
-            {
-                texturesDone = true;
-            }
-        }
+		URL trUrl = Atmosphere.class.getResource("transmittance.dat");
+        URL irUrl = Atmosphere.class.getResource("irradiance.dat");
+        URL inUrl = Atmosphere.class.getResource("inscatter.dat");
+		
+		if(loadDefaultTextures(gl, trUrl, irUrl, inUrl)){
+			texturesDone = true;
+		}
+		else{
+			logger.severe("precompute(): Can't load default textures!");
+		}
+			
         popState(gl);
     }
 
@@ -529,13 +507,13 @@ public class Atmosphere extends BasicShaderFactory
         gl.glPopMatrix();
     }
 
-    private boolean loadData(GL gl)
+    private boolean loadDefaultTextures(GL gl, URL transmitance, URL irradiance, URL inscatter)
     {
-        synchronized (lock)
+        synchronized (fileLock)
         {
-            URL trUrl = WorldWind.getDataFileStore().findFile(getFilePath("transmittance.dat"), false);
-            URL irUrl = WorldWind.getDataFileStore().findFile(getFilePath("irradinace.dat"), false);
-            URL inUrl = WorldWind.getDataFileStore().findFile(getFilePath("inscatter.dat"), false);
+            URL trUrl = transmitance;
+            URL irUrl = irradiance;
+            URL inUrl = inscatter;
 
             File trFile;
             File irFile;
@@ -620,160 +598,39 @@ public class Atmosphere extends BasicShaderFactory
 
     public void saveTextures(GL2 gl)
     {
-        Buffer transmittanceBuffer = Buffers.newDirectByteBuffer(8 * 3 * this.TRANSMITTANCE_H * this.TRANSMITTANCE_W);
-        Buffer irradinaceBuffer = Buffers.newDirectByteBuffer(8 * 3 * this.SKY_H * this.SKY_W);
-        Buffer inscatterBuffer = Buffers.newDirectByteBuffer(8 * 4 * RES_MU_S * RES_NU * RES_MU * RES_R);
+		synchronized(fileLock){
+			Buffer transmittanceBuffer = Buffers.newDirectByteBuffer(8 * 3 * this.TRANSMITTANCE_H * this.TRANSMITTANCE_W);
+			Buffer irradinaceBuffer = Buffers.newDirectByteBuffer(8 * 3 * this.SKY_H * this.SKY_W);
+			Buffer inscatterBuffer = Buffers.newDirectByteBuffer(8 * 4 * RES_MU_S * RES_NU * RES_MU * RES_R);
 
-        gl.glBindTexture(GL.GL_TEXTURE_2D, transmittanceTexture[0]);
-        gl.glGetTexImage(GL.GL_TEXTURE_2D, 0, GL.GL_RGB, GL.GL_FLOAT, transmittanceBuffer);
-        gl.glBindTexture(GL.GL_TEXTURE_2D, irradianceTexture[0]);
-        gl.glGetTexImage(GL.GL_TEXTURE_2D, 0, GL.GL_RGB, GL.GL_FLOAT, irradinaceBuffer);
-        gl.glBindTexture(GL2.GL_TEXTURE_3D, inscatterTexture[0]);
-        gl.glGetTexImage(GL2.GL_TEXTURE_3D, 0, GL.GL_RGBA, GL.GL_FLOAT, inscatterBuffer);
+			gl.glBindTexture(GL.GL_TEXTURE_2D, transmittanceTexture[0]);
+			gl.glGetTexImage(GL.GL_TEXTURE_2D, 0, GL.GL_RGB, GL.GL_FLOAT, transmittanceBuffer);
+			gl.glBindTexture(GL.GL_TEXTURE_2D, irradianceTexture[0]);
+			gl.glGetTexImage(GL.GL_TEXTURE_2D, 0, GL.GL_RGB, GL.GL_FLOAT, irradinaceBuffer);
+			gl.glBindTexture(GL2.GL_TEXTURE_3D, inscatterTexture[0]);
+			gl.glGetTexImage(GL2.GL_TEXTURE_3D, 0, GL.GL_RGBA, GL.GL_FLOAT, inscatterBuffer);
 
-        File fileTransmittance = WorldWind.getDataFileStore().newFile(getFilePath("transmittance.dat"));
-        File fileIrradinace = WorldWind.getDataFileStore().newFile(getFilePath("irradinace.dat"));
-        File fileInscatter = WorldWind.getDataFileStore().newFile(getFilePath("inscatter.dat"));
+			File fileTransmittance = WorldWind.getDataFileStore().newFile(getFilePath("transmittance.dat"));
+			File fileIrradinace = WorldWind.getDataFileStore().newFile(getFilePath("irradiance.dat"));
+			File fileInscatter = WorldWind.getDataFileStore().newFile(getFilePath("inscatter.dat"));
 
-        try
-        {
-            boolean trDone = WWIO.saveBufferToGZipFile((ByteBuffer) transmittanceBuffer, fileTransmittance);
-            transmittanceBuffer.clear();
-            boolean irDone = WWIO.saveBufferToGZipFile((ByteBuffer) irradinaceBuffer, fileIrradinace);
-            irradinaceBuffer.clear();
-            boolean inDone = WWIO.saveBufferToGZipFile((ByteBuffer) inscatterBuffer, fileInscatter);
-            inscatterBuffer.clear();
-        } catch (IOException ex)
-        {
-			logger.log(Level.SEVERE, "loadData(): exception: {0}", ex.toString());
-        }
-
+			try
+			{
+				WWIO.saveBufferToGZipFile((ByteBuffer) transmittanceBuffer, fileTransmittance);
+				transmittanceBuffer.clear();
+				WWIO.saveBufferToGZipFile((ByteBuffer) irradinaceBuffer, fileIrradinace);
+				irradinaceBuffer.clear();
+				WWIO.saveBufferToGZipFile((ByteBuffer) inscatterBuffer, fileInscatter);
+				inscatterBuffer.clear();
+			} catch (IOException ex)
+			{
+				logger.log(Level.SEVERE, "loadData(): exception: {0}", ex.toString());
+			}
+		}
     }
 
     private static String getFilePath(String file)
     {
         return "Earth/Atmosphere/" + file;
-    }
-    private final Object lock = new Object();
-
-    private class HTTPDownloader
-    {
-        private static final String SERVER_ROOT = "si.xlab.gaea.root";
-        private boolean requestSend = false;
-        private boolean error = false;
-        private Retriever trR;
-        private Retriever irR;
-        private Retriever inR;
-
-        public boolean isReading()
-        {
-            return requestSend;
-        }
-
-        public boolean isDone()
-        {
-            if (requestSend)
-            {
-                boolean done = trR.getState() == Retriever.RETRIEVER_STATE_SUCCESSFUL
-                        && irR.getState() == Retriever.RETRIEVER_STATE_SUCCESSFUL
-                        && inR.getState() == Retriever.RETRIEVER_STATE_SUCCESSFUL;
-
-                if (done)
-                {
-                    requestSend = false;
-                }
-                return done;
-            } else
-            {
-                return false;
-            }
-        }
-
-        public boolean hasError()
-        {
-
-			if(error){
-				return true;
-			}
-			
-            if (requestSend)
-            {
-                boolean error = trR.getState() == Retriever.RETRIEVER_STATE_ERROR
-                        || irR.getState() == Retriever.RETRIEVER_STATE_ERROR
-                        || inR.getState() == Retriever.RETRIEVER_STATE_ERROR;
-
-                if (error)
-                {
-                    requestSend = false;
-                }
-                return error;
-            } else
-            {
-                return false;
-            }
-        }
-
-        public void requestTextures()
-        {
-            String trFileName = "transmittance.dat";
-            String irFileName = "irradinace.dat";
-            String inFileName = "inscatter.dat";
-            String trUrlPath = Configuration.getStringValue(SERVER_ROOT) + "atmosphere/" + trFileName;
-            String irUrlPath = Configuration.getStringValue(SERVER_ROOT) + "atmosphere/" + irFileName;
-            String inUrlPath = Configuration.getStringValue(SERVER_ROOT) + "atmosphere/" + inFileName;
-            
-            try
-            {
-                HTTPRetrievalPostProcessor trRpp = new HTTPRetrievalPostProcessor(trFileName);
-                HTTPRetrievalPostProcessor irRpp = new HTTPRetrievalPostProcessor(irFileName);
-                HTTPRetrievalPostProcessor inRpp = new HTTPRetrievalPostProcessor(inFileName);
-                URL trUrl = new URL(trUrlPath);
-                URL irUrl = new URL(irUrlPath);
-                URL inUrl = new URL(inUrlPath);
-                trR = HTTPRetriever.createRetriever(trUrl, trRpp);
-                irR = HTTPRetriever.createRetriever(irUrl, irRpp);
-                inR = HTTPRetriever.createRetriever(inUrl, inRpp);
-                WorldWind.getRetrievalService().runRetriever(trR);
-                WorldWind.getRetrievalService().runRetriever(irR);
-                WorldWind.getRetrievalService().runRetriever(inR);
-                requestSend = true;
-            } catch (MalformedURLException ex)
-            {
-				logger.log(Level.SEVERE, "requestTexture(): exception: {0}", ex.toString());
-                error = true;
-            }
-        }
-
-        private class HTTPRetrievalPostProcessor implements RetrievalPostProcessor
-        {
-
-            String fileName;
-
-            public HTTPRetrievalPostProcessor(String fileName)
-            {
-                this.fileName = fileName;
-            }
-
-            public ByteBuffer run(Retriever retriever)
-            {
-                try
-                {
-                    synchronized (lock)
-                    {
-                        File file = WorldWind.getDataFileStore().newFile(getFilePath(fileName));
-                        WWIO.saveBuffer(retriever.getBuffer(), file);
-                    }
-                } catch (IllegalArgumentException ex)
-                {
-					logger.log(Level.SEVERE, "HTTPRetrievalPostProcessor: run(): exception: {0}", ex.toString());
-                } catch (IOException ex)
-                {
-					logger.log(Level.SEVERE, "HTTPRetrievalPostProcessor: run(): exception: {0}", ex.toString());
-                } finally
-                {
-                    return null;
-                }
-            }
-        }
     }
 }

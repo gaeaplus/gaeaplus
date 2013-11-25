@@ -7,7 +7,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLContext;
 
@@ -331,7 +330,7 @@ public class BasicGLSLShader implements Shader{
 
 				if(parameter == -1){
 					String message = "In shader: " + getURL().getFile() + " ShaderParameter: " + paramName + " NOT FOUND or NOT USED!";
-					logger.warning(message);
+					logger.log(Level.FINE, message);
 				}
 				this.parameters.put(paramName, parameter);
 			}

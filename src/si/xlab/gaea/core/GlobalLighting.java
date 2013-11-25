@@ -148,17 +148,13 @@ public class GlobalLighting
     public void renderEffects(DrawContext dc, DeferredRendererImpl dr){
         GL gl = dc.getGL();
 
-        if (!dc.isSunLightEnabled())
+        if (!dc.isSunLightEnabled()){
             return;
+		}
 
-        if (!atmosphere.isTexturesDone())
-        {
-            atmosphere.precompute(dc);
-        }
-        if (!atmosphere.isTexturesDone())
-        {
-            return;
-        }
+		if(dc.isAtmosphereEnabled()){
+           	atmosphere.precompute(dc);
+		}
 
         if (viewport == null || !viewport.equals(dr.getViewport()))
         {
