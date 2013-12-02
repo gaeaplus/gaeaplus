@@ -233,7 +233,7 @@ public class WorldWindowGLAutoDrawable extends WorldWindowImpl implements WorldW
         //    textures with the target GL_TEXTURE_RECTANGLE.
         TextureIO.setTexRectEnabled(false);
 
-//        this.drawable.setGL(new DebugGL(this.drawable.getGL())); // uncomment to use the debug drawable
+        //this.drawable.setGL(new DebugGL2(this.drawable.getGL().getGL2())); // uncomment to use the debug drawable
     }
 
     @SuppressWarnings({"UnusedParameters"})

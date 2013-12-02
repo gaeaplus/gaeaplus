@@ -42,6 +42,7 @@ public class BlureEffect extends AbstractEffect{
 		this.textureMaskPower = textureMaskPower;
 	}
 
+	@Override
 	public int doRenderEffect(DrawContext dc){
 		
 		GL2 gl = dc.getGL().getGL2();
@@ -71,7 +72,7 @@ public class BlureEffect extends AbstractEffect{
 		
 		//blure vertical
 		shader = dc.getShaderContext().getShader("Blure7V.glsl", "#version 120\n");
-		shader.enable(dc.getShaderContext());
+		dc.getShaderContext().enable(shader);
 
 		shader.setParam("maskSampler", 3);
 		shader.setParam("sampleDist", new float[]{pixelHDist});
@@ -92,11 +93,10 @@ public class BlureEffect extends AbstractEffect{
 			}
 			drawQuadTex(gl);
 		}
-		shader.disable(dc.getShaderContext());
 
 		///blure horizontal
 		shader = dc.getShaderContext().getShader("Blure7H.glsl", "#version 120\n");
-		shader.enable(dc.getShaderContext());
+		dc.getShaderContext().enable(shader);
 
 		shader.setParam("maskSampler", 3);
 		shader.setParam("sampleDist", new float[]{pixelWDist});
@@ -116,7 +116,6 @@ public class BlureEffect extends AbstractEffect{
 			}
 			drawQuadTex(gl);
 		}
-		shader.disable(dc.getShaderContext());
 
 		int outTexture;
 		if(textureCurrent == 0){

@@ -1316,7 +1316,7 @@ public class ExtrudedPolygon extends AbstractShape
             GL2 gl = dc.getGL().getGL2(); // GL initialization checks for GL2 compatibility.
 
 			if(this.shader != null && dc.getShaderContext().getCurrentShader() != this.shader){
-				this.shader.enable(dc.getShaderContext());
+				dc.getShaderContext().enable(this.shader);
 				this.shader.setParam("eyeToWorld", dc.getView().getModelviewMatrix().getTranspose());
 
 				int[] drawBuffersArray = new int[drawBuffers.size()];
@@ -1331,7 +1331,7 @@ public class ExtrudedPolygon extends AbstractShape
 			}
 		}
 		else if(dc.getShaderContext().getCurrentShader() != null){
-			dc.getShaderContext().getCurrentShader().disable(dc.getShaderContext());
+			dc.getShaderContext().disableShaders();
 		}
 		//X-END
 
@@ -1799,7 +1799,7 @@ public class ExtrudedPolygon extends AbstractShape
 		dc.getShaderContext().pushShader();
 
 		shader = shader = dc.getShaderContext().getShader("DefferedColor.glsl", "#version 120\n");
-		shader.enable(dc.getShaderContext());
+		dc.getShaderContext().enable(shader);
 
 		boolean hasTexture = false;
 		boolean hasNormals = false;
@@ -1813,7 +1813,8 @@ public class ExtrudedPolygon extends AbstractShape
 		}
 		if(this.mustApplyTexture(dc)){
 			shader = dc.getShaderContext().getShader("DefferedTexture.glsl", "#version 120\n");
-			shader.enable(dc.getShaderContext());
+			
+			dc.getShaderContext().enable(shader);
 			shader.setParam("colorSampler", 0);	
 			hasTexture = true;
 			this.renderAttributes.setRenderMode(RenderAttributes.TEXTURE_MODE);
@@ -1821,7 +1822,8 @@ public class ExtrudedPolygon extends AbstractShape
 		if(this.mustApplyLighting(dc)){
 			drawBuffers.add(GL2.GL_COLOR_ATTACHMENT2);
 			shader = dc.getShaderContext().getShader("DefferedObject.glsl", "");
-			shader.enable(dc.getShaderContext());
+			
+			dc.getShaderContext().enable(shader);
 			shader.setParam("colorSampler", 0);
 			if(hasTexture){
 				shader.setParam("useTexture", new float[]{1.0f});
@@ -1837,7 +1839,8 @@ public class ExtrudedPolygon extends AbstractShape
 			//		using polygons and other geometry types should be avoided!
 			drawBuffers.add(GL2.GL_COLOR_ATTACHMENT1);	
 			shader = dc.getShaderContext().getShader("DefferedObject.glsl", "#version 150 compatibility\n");
-			shader.enable(dc.getShaderContext());
+
+			dc.getShaderContext().enable(shader);
 			shader.setParam("colorSampler", 0);
 			shader.setParam("bumpSampler", 1);
 

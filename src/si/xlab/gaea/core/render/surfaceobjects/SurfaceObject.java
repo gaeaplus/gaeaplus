@@ -25,12 +25,10 @@ public abstract class SurfaceObject
 
 	public void enableShader(DrawContext dc, Shader shader){
 		if(shader != null && shader.isValid()){
-			if(dc.getShaderContext().getCurrentShader() != shader){
-				shader.enable(dc.getShaderContext());
-			}
+			dc.getShaderContext().enable(shader);
 		}
-		else if(dc.getShaderContext().getCurrentShader() != null){
-			dc.getShaderContext().getCurrentShader().disable(dc.getShaderContext());
+		else{
+			dc.getShaderContext().disableShaders();
 		}
 	}
 

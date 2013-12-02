@@ -229,20 +229,20 @@ public class FrameBuffer implements GLDisposable{
         
 		gl.glDrawBuffers(drawBuffers.length, drawBuffers, 0);
 	}
-	
-	public void setReadBuffers(DrawContext dc, int readBuffer){
-		GL2 gl = dc.getGL().getGL2();
 
-        if(dc.getFramebufferController().getCurrent() != this){
+    public void setReadBuffers(DrawContext dc, int readBuffer) {
+        GL2 gl = dc.getGL().getGL2();
+
+        if (dc.getFramebufferController().getCurrent() != this) {
             String str = "FrameBuffer.releaseTextures() - FrameBuffer not bound!";
             logger.severe(str);
             throw new IllegalStateException(str);
         }
-        
-		gl.glReadBuffer(readBuffer);
-	}
 
-	public boolean isComplete(DrawContext dc, boolean throwException){
+        gl.glReadBuffer(readBuffer);
+    }
+
+    public boolean isComplete(DrawContext dc, boolean throwException){
 		GL2 gl = dc.getGL().getGL2();
 		int enumType = gl.glCheckFramebufferStatus(GL2.GL_FRAMEBUFFER);
 

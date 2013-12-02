@@ -8,16 +8,16 @@ import si.xlab.gaea.core.shaders.Shader;
 import si.xlab.gaea.core.shaders.ShaderContext;
 import si.xlab.gaea.core.shaders.ShaderFactory;
 import gov.nasa.worldwind.util.WWIO;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.InputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
 import javax.media.opengl.GL;
 import javax.media.opengl.GL2;
-import si.xlab.gaea.avlist.AvKeyExt;
 
 /**
  *
@@ -309,17 +309,15 @@ public class Atmosphere extends BasicShaderFactory
         // computes transmittance texture T (line 1 in algorithm 4.1)
         gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, transmittanceTexture[0], 0);
         gl.glViewport(0, 0, TRANSMITTANCE_W, TRANSMITTANCE_H);
-		transmittanceProg.enable(sc);
+		dc.getShaderContext().enable(transmittanceProg);
         drawQuad(gl);
-		transmittanceProg.disable(sc);
 
         // computes irradiance texture deltaE (line 2 in algorithm 4.1)
         gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, deltaETexture[0], 0);
         gl.glViewport(0, 0, SKY_W, SKY_H);
-		irradiance1Prog.enable(sc);
+		dc.getShaderContext().enable(irradiance1Prog);
 		irradiance1Prog.setParam("transmittanceSampler", transmittanceUnit);
         drawQuad(gl);
-		irradiance1Prog.disable(sc);
 
         // computes single scattering texture deltaS (line 3 in algorithm 4.1)
         // Rayleigh and Mie separated in deltaSR + deltaSM
@@ -332,14 +330,13 @@ public class Atmosphere extends BasicShaderFactory
         gl.glDrawBuffers(2, bufs, 0);
         gl.glViewport(0, 0, RES_MU_S * RES_NU, RES_MU);
 		
-		inscatter1Prog.enable(sc);
+		dc.getShaderContext().enable(inscatter1Prog);
 		inscatter1Prog.setParam("transmittanceSampler", transmittanceUnit);
         for (int layer = 0; layer < RES_R; ++layer)
         {
             setLayer(inscatter1Prog, layer);
             drawQuad(gl);
         }
-		inscatter1Prog.disable(sc);
 
         gl.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL2.GL_COLOR_ATTACHMENT1, GL.GL_TEXTURE_2D, 0, 0);
         gl.glDrawBuffer(GL.GL_COLOR_ATTACHMENT0);
@@ -347,16 +344,16 @@ public class Atmosphere extends BasicShaderFactory
         // copies deltaE into irradiance texture E (line 4 in algorithm 4.1)
         gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, irradianceTexture[0], 0);
         gl.glViewport(0, 0, SKY_W, SKY_H);
-		copyIrradianceProg.enable(sc);
+
+		dc.getShaderContext().enable(copyIrradianceProg);
 		copyIrradianceProg.setParam("k", new float[]{0.0f});
 		copyIrradianceProg.setParam("deltaESampler", deltaEUnit);
         drawQuad(gl);
-		copyIrradianceProg.disable(sc);
 
         // copies deltaS into inscatter texture S (line 5 in algorithm 4.1)
         gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, inscatterTexture[0], 0);
         gl.glViewport(0, 0, RES_MU_S * RES_NU, RES_MU);
-		copyInscatter1Prog.enable(sc);
+		dc.getShaderContext().enable(copyInscatter1Prog);
 		copyInscatter1Prog.setParam("deltaSRSampler", deltaSRUnit);
 		copyInscatter1Prog.setParam("deltaSMSampler", deltaSMUnit);
         for (int layer = 0; layer < RES_R; ++layer)
@@ -364,7 +361,6 @@ public class Atmosphere extends BasicShaderFactory
             setLayer(copyInscatter1Prog, layer);
             drawQuad(gl);
         }
-		copyInscatter1Prog.disable(sc);
 
         // loop for each scattering order (line 6 in algorithm 4.1)
         for (int order = 2; order <= 4; ++order)
@@ -372,7 +368,8 @@ public class Atmosphere extends BasicShaderFactory
             // computes deltaJ (line 7 in algorithm 4.1)
             gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, deltaJTexture[0], 0);
             gl.glViewport(0, 0, RES_MU_S * RES_NU, RES_MU);
-			jProg.enable(sc);
+			
+			dc.getShaderContext().enable(jProg);
 			jProg.setParam("first", new float[]{order == 2 ? 1.0f : 0.0f});
 			jProg.setParam("transmittanceSampler", transmittanceUnit);
 			jProg.setParam("deltaESampler", deltaEUnit);
@@ -383,23 +380,23 @@ public class Atmosphere extends BasicShaderFactory
                 setLayer(jProg, layer);
                 drawQuad(gl);
             }
-			jProg.disable(sc);
 
             // computes deltaE (line 8 in algorithm 4.1)
             gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, deltaETexture[0], 0);
             gl.glViewport(0, 0, SKY_W, SKY_H);
-			irradianceNProg.enable(sc);
+			
+			dc.getShaderContext().enable(irradianceNProg);
 			irradianceNProg.setParam("first", new float[]{order == 2 ? 1.0f : 0.0f});
 			irradianceNProg.setParam("transmittanceSampler", transmittanceUnit);
 			irradianceNProg.setParam("deltaSRSampler", deltaSRUnit);
 			irradianceNProg.setParam("deltaSMSampler", deltaSMUnit);
             drawQuad(gl);
-			irradianceNProg.disable(sc);
 
             // computes deltaS (line 9 in algorithm 4.1)
             gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, deltaSRTexture[0], 0);
             gl.glViewport(0, 0, RES_MU_S * RES_NU, RES_MU);
-			inscatterNProg.enable(sc);
+			
+			dc.getShaderContext().enable(inscatterNProg);
 			inscatterNProg.setParam("first", new float[]{order == 2 ? 1.0f : 0.0f});
 			inscatterNProg.setParam("transmittanceSampler", transmittanceUnit);
 			inscatterNProg.setParam("deltaJSampler", deltaJUnit);
@@ -408,7 +405,6 @@ public class Atmosphere extends BasicShaderFactory
                 setLayer(inscatterNProg, layer);
                 drawQuad(gl);
             }
-			inscatterNProg.disable(sc);
 
             gl.glEnable(GL.GL_BLEND);
             gl.glBlendEquationSeparate(GL.GL_FUNC_ADD, GL.GL_FUNC_ADD);
@@ -417,23 +413,23 @@ public class Atmosphere extends BasicShaderFactory
             // adds deltaE into irradiance texture E (line 10 in algorithm 4.1)
             gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, irradianceTexture[0], 0);
             gl.glViewport(0, 0, SKY_W, SKY_H);
-			copyIrradianceProg.enable(sc);
+			
+			dc.getShaderContext().enable(copyIrradianceProg);
 			copyIrradianceProg.setParam("k", new float[]{1.0f});
 			copyIrradianceProg.setParam("deltaESampler", deltaEUnit);
             drawQuad(gl);
-			copyIrradianceProg.disable(sc);
 
             // adds deltaS into inscatter texture S (line 11 in algorithm 4.1)
             gl.glFramebufferTextureEXT(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, inscatterTexture[0], 0);
             gl.glViewport(0, 0, RES_MU_S * RES_NU, RES_MU);
-			copyInscatterNProg.enable(sc);
+			
+			dc.getShaderContext().enable(copyInscatterNProg);
 			copyInscatterNProg.setParam("deltaSSampler", deltaSRUnit);
             for (int layer = 0; layer < RES_R; ++layer)
             {
                 setLayer(copyInscatterNProg, layer);
                 drawQuad(gl);
             }
-			copyInscatterNProg.disable(sc);
 
             gl.glDisable(GL.GL_BLEND);
         }
@@ -483,9 +479,9 @@ public class Atmosphere extends BasicShaderFactory
         gl.glMatrixMode(GL2.GL_PROJECTION);
         gl.glViewport(0, 0, dc.getDrawableWidth(), dc.getDrawableHeight());
 
-		URL trUrl = Atmosphere.class.getResource("transmittance.dat");
-        URL irUrl = Atmosphere.class.getResource("irradiance.dat");
-        URL inUrl = Atmosphere.class.getResource("inscatter.dat");
+		InputStream trUrl = Atmosphere.class.getResourceAsStream("transmittance.dat");
+        InputStream irUrl = Atmosphere.class.getResourceAsStream("irradiance.dat");
+        InputStream inUrl = Atmosphere.class.getResourceAsStream("inscatter.dat");
 		
 		if(loadDefaultTextures(gl, trUrl, irUrl, inUrl)){
 			texturesDone = true;
@@ -507,35 +503,13 @@ public class Atmosphere extends BasicShaderFactory
         gl.glPopMatrix();
     }
 
-    private boolean loadDefaultTextures(GL gl, URL transmitance, URL irradiance, URL inscatter)
+    private boolean loadDefaultTextures(GL gl, InputStream transmitance, 
+											   InputStream irradiance, 
+											   InputStream inscatter)
     {
         synchronized (fileLock)
         {
-            URL trUrl = transmitance;
-            URL irUrl = irradiance;
-            URL inUrl = inscatter;
-
-            File trFile;
-            File irFile;
-            File inFile;
-
-            if (trUrl == null || irUrl == null || inUrl == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                trFile = new File(trUrl.toURI());
-                irFile = new File(irUrl.toURI());
-                inFile = new File(inUrl.toURI());
-            } catch (URISyntaxException ex)
-            {
-				logger.log(Level.SEVERE, "loadData(): exception: {0}", ex.toString());
-                return false;
-            }
-
-            if (trFile == null || irFile == null || inFile == null)
+            if (transmitance == null || irradiance == null || inscatter == null)
             {
                 return false;
             }
@@ -546,9 +520,9 @@ public class Atmosphere extends BasicShaderFactory
 
             try
             {
-                trBuffer = WWIO.readGZipFileToBuffer(trFile);
-                irBuffer = WWIO.readGZipFileToBuffer(irFile);
-                inBuffer = WWIO.readGZipFileToBuffer(inFile);
+            	trBuffer = WWIO.readStreamToBuffer(new GZIPInputStream(new BufferedInputStream(transmitance)));
+            	irBuffer = WWIO.readStreamToBuffer(new GZIPInputStream(new BufferedInputStream(irradiance)));
+            	inBuffer = WWIO.readStreamToBuffer(new GZIPInputStream(new BufferedInputStream(inscatter)));
             } catch (IOException ex)
             {
 				logger.log(Level.SEVERE, "loadData(): exception: {0}", ex.toString());

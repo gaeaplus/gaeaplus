@@ -179,21 +179,6 @@ public class BasicGLSLCompiler implements Disposable{
 		}
 	}
 
-	private void printGLLog(GL2 gl, GLU glu){
-		while(true){
-			int error = gl.glGetError();
-			
-			if(error == GL2.GL_NO_ERROR)
-			{
-				break;
-			}
-			else{
-				String msg = "OpenGL error number: " + error + " description: "+ glu.gluErrorString(error);
-				logger.severe(msg);
-			}
-		}
-	}
-
 	private String readFile(URL fileUrl) throws IOException
 	{
 		HashSet<String> loadedFiles = new HashSet<String>();
@@ -287,8 +272,6 @@ public class BasicGLSLCompiler implements Disposable{
 
 			URL fileUrl = shader.getURL();
 			String startString = shader.getRuntimeCode();
-
-			this.printGLLog(gl, glu);
 
 			int programId = gl.glCreateProgram();
 			if (!gl.glIsProgram(programId)) {
@@ -400,7 +383,13 @@ public class BasicGLSLCompiler implements Disposable{
 				return false;
 			}
 
+			//TODO: bind textures to different texture units!
+			//
+
+                        
 			gl.glLinkProgram(programId);
+                        
+                        /*
 			if (!checkShaderLinkError(gl, programId)) {
 				gl.glDeleteProgram(programId);
 				return false;
@@ -410,12 +399,12 @@ public class BasicGLSLCompiler implements Disposable{
 				gl.glDeleteProgram(programId);
 				return false;
 			}
+                        */
 
 			shader.setFS(vertexShaderId);
 			shader.setGS(geometryShaderId);
 			shader.setVS(fragmentShaderId);
 			shader.setProgram(programId);
-			printGLLog(gl, glu);
 		} 
 		catch (GLException e) {
 			return false;

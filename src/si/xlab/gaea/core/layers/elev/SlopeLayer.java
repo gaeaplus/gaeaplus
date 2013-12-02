@@ -66,14 +66,14 @@ public class SlopeLayer extends RenderableLayer{
 		gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
 
 		Shader shader = dc.getShaderContext().getShader("SlopeLayer.glsl", "#version 120\n");
-		shader.enable(dc.getShaderContext());
+		dc.getShaderContext().enable(shader);
+
 		shader.setParam("maxSlope", new float[]{(float)(maxAngle.radians)});
 		shader.setParam("color", new float[]{1.0f, 0.0f, 0.0f, (float)getOpacity()});
 		shader.setParam("normalTex", 0);
 		
 		renderTerrain(dc);
 		
-		shader.disable(dc.getShaderContext());
 		gl.glDisable(GL.GL_BLEND);
 		gl.glPopAttrib();
 	}

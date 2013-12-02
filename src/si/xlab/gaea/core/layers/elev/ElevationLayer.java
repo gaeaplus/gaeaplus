@@ -106,10 +106,10 @@ public class ElevationLayer extends RenderableLayer {
 
 		dc.getShaderContext().pushShader();
 
-		Shader shader = dc.getShaderContext().getShader("TerrainElevation.glsl", "");
+		Shader shader = dc.getShaderContext().getShader("TerrainElevation.glsl", "#version 120\n");
 
 		if (shader.isValid()) {
-			shader.enable(dc.getShaderContext());
+			dc.getShaderContext().enable(shader);
 
 			gl.glActiveTexture(GL.GL_TEXTURE0);
 			gl.glBindTexture(GL.GL_TEXTURE_2D, dc.getDeferredRenderer().getNormalTexture());
@@ -127,8 +127,6 @@ public class ElevationLayer extends RenderableLayer {
 			gl.glActiveTexture(GL.GL_TEXTURE1);
 			gl.glBindTexture(GL.GL_TEXTURE_2D, 0);
 			gl.glActiveTexture(GL.GL_TEXTURE0);
-
-			shader.disable(dc.getShaderContext());
 		}
 
 		dc.getShaderContext().popShader();

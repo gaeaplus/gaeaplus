@@ -28,7 +28,7 @@ import javax.media.opengl.GLContext;
  */
 public class ShadowVolume implements Disposable{
 
-	private final Logger logger = Logging.logger(ShadowVolume.class.getName());
+	private static final Logger logger = Logging.logger(ShadowVolume.class.getName());
 	private Tessellator tesselator = new ShadowVolumeTessellator();
 
 	private int[] texture = new int[1];
@@ -147,8 +147,7 @@ public class ShadowVolume implements Disposable{
 
 		gl3.glBindAttribLocation(shader.getProgram(), 0, "in_vertex");
 
-		shader.enable(dc.getShaderContext());
-
+		dc.getShaderContext().enable(shader);
 
 		shader.setParam("u_light", dc.getSunlightDirection());
 		shader.setParam("u_zNear", new float[]{(float)(dc.getView().getNearClipDistance())});
@@ -208,8 +207,6 @@ public class ShadowVolume implements Disposable{
 			gl.glBlendEquationSeparate(GL.GL_FUNC_ADD, GL.GL_FUNC_ADD);
 //			gl.glEnable(GL.GL_DEPTH_TEST);
 		}
-
-		shader.disable(dc.getShaderContext());
 
 		if(!debug){
 			gl.glClearColor(0, 0, 0, 0);

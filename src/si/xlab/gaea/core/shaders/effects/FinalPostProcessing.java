@@ -50,6 +50,7 @@ public class FinalPostProcessing extends AbstractEffect{
 		this.textureDepth = textureDepth;
 	}
 
+	@Override
 	public int doRenderEffect(DrawContext dc)
 	{
 		if(renderBloom){
@@ -97,7 +98,7 @@ public class FinalPostProcessing extends AbstractEffect{
 			gl.glBindTexture(GL.GL_TEXTURE_2D, textureBloom);
 			
 			Shader shader = dc.getShaderContext().getShader("HDRBloom.glsl", "#version 120\n");
-			shader.enable(dc.getShaderContext());
+			dc.getShaderContext().enable(shader);
 			shader.setParam("intensityAve", new float[]{intensityAve});
 			shader.setParam("colorTex", 0);
 			shader.setParam("depthTex", 1);
@@ -109,13 +110,11 @@ public class FinalPostProcessing extends AbstractEffect{
 			}
 
 			drawQuadTex(gl);
-			shader.disable(dc.getShaderContext());
-
 		}
 		else{
 
 			Shader shader = dc.getShaderContext().getShader("HDR.glsl", "#version 120\n");
-			shader.enable(dc.getShaderContext());
+			dc.getShaderContext().enable(shader);
 			shader.setParam("intensityAve", new float[]{intensityAve});
 			shader.setParam("colorTex", 0);
 			shader.setParam("depthTex", 1);
@@ -126,13 +125,12 @@ public class FinalPostProcessing extends AbstractEffect{
 			}
 
 			drawQuadTex(gl);
-			shader.disable(dc.getShaderContext());
-			
 		}
 		gl.glActiveTexture(GL.GL_TEXTURE0);
         gl.glPopAttrib();
 	}
 
+	@Override
 	protected void doGenerateInternalTextures(GL gl)
 	{
 	}

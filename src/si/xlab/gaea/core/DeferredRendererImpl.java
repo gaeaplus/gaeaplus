@@ -273,7 +273,8 @@ public class DeferredRendererImpl implements DeferredRenderer {
 					shader.setParam("useTexture", new float[]{1.0f});
 				}
 			}
-		} else if (layer.getRenderAttributes().getRenderType() == RenderAttributes.RenderType.GLOBE) {
+		} 
+		else if (layer.getRenderAttributes().getRenderType() == RenderAttributes.RenderType.GLOBE) {
 			shader = dc.getShaderContext().getShader("SurfaceTileShader.glsl", "#version 120\n");
 			shader.setParam("colorSampler", 0);
 			shader.setParam("exaggeration", new float[]{(float) dc.getVerticalExaggeration()});
@@ -293,7 +294,7 @@ public class DeferredRendererImpl implements DeferredRenderer {
 		dc.getShaderContext().pushShader();
 
 		if (shader != null && shader.isValid()) {
-			shader.enable(dc.getShaderContext());
+			dc.getShaderContext().enable(shader);
 			shader.setParam("eyeToWorld", dc.getView().getModelviewMatrix().getTranspose());
 			shader.setParam("u_drawDistance", new float[]{Float.MAX_VALUE});
 			if (!renderToNormal) {
@@ -351,7 +352,8 @@ public class DeferredRendererImpl implements DeferredRenderer {
 
 		Shader shader = dc.getShaderContext().getShader("TerrainNormal.glsl", "#version 120\n");
 		dc.getShaderContext().pushShader();
-		shader.enable(dc.getShaderContext());
+
+		dc.getShaderContext().enable(shader);
 		shader.setParam("heightTex", 0);
 		shader.setParam("exaggeration", new float[]{(float) dc.getVerticalExaggeration()});
 

@@ -379,6 +379,10 @@ public class GaeaSceneController extends AbstractSceneController {
 			this.clearFrame(dc);
 
 			if (deferredRenderer.isEnabled()) {
+
+				//push current shader state
+				dc.getShaderContext().pushShader();
+				
 				MeasureRenderTime.startMeasure(dc, "deferredRenderer");
 				deferredRenderer.begin(dc);
 
@@ -400,6 +404,9 @@ public class GaeaSceneController extends AbstractSceneController {
 				MeasureRenderTime.startMeasure(dc, "globalLighting");
 				globalLighting.renderEffects(dc, deferredRenderer);
 				MeasureRenderTime.stopMeasure(dc);
+
+				//pop revious shader state
+				dc.getShaderContext().popShader();
 
 				drawLayers(dc, RenderAttributes.RenderType.SCREEN);
 

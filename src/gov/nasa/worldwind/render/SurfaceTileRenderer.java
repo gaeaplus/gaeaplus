@@ -196,61 +196,61 @@ public abstract class SurfaceTileRenderer implements Disposable
                 {
                     gl.glActiveTexture(GL.GL_TEXTURE0);
 
-			//X-START
-			//Vito
-			//set some shader parameters if using shaders.
-			//TODO: optimize!
-			if (dc.getShaderContext().getCurrentShader() != null && tile instanceof TextureTile) {
-				TextureTile tt = null;
-				tt = (TextureTile) tile;
+					//X-START
+					//Vito
+					//set some shader parameters if using shaders.
+					//TODO: optimize!
+					if (dc.getShaderContext().getCurrentShader() != null && tile instanceof TextureTile) {
+						TextureTile tt = null;
+						tt = (TextureTile) tile;
 
-				Shader shader = dc.getShaderContext().getCurrentShader();
-				shader.setParam("texelSize", new float[]{(float) (dc.getGlobe().getRadius() * tt.getLevel().getTexelSize())});
-				shader.setParam("sector", new float[]{(float) tt.getSector().getMinLatitude().radians,
-						(float) tt.getSector().getMaxLatitude().radians,
-						(float) tt.getSector().getMinLongitude().radians,
-						(float) tt.getSector().getMaxLongitude().radians});
-			}
-			//X-END
+						Shader shader = dc.getShaderContext().getCurrentShader();
+						shader.setParam("texelSize", new float[]{(float) (dc.getGlobe().getRadius() * tt.getLevel().getTexelSize())});
+						shader.setParam("sector", new float[]{(float) tt.getSector().getMinLatitude().radians,
+								(float) tt.getSector().getMaxLatitude().radians,
+								(float) tt.getSector().getMinLongitude().radians,
+								(float) tt.getSector().getMaxLongitude().radians});
+					}
+					//X-END
 
-			if (tile.bind(dc))
-                    {
-                        gl.glMatrixMode(GL2.GL_TEXTURE);
-                        gl.glLoadIdentity();
-                        tile.applyInternalTransform(dc, true);
+					if (tile.bind(dc))
+					{
+						gl.glMatrixMode(GL2.GL_TEXTURE);
+						gl.glLoadIdentity();
+						tile.applyInternalTransform(dc, true);
 
-                        // Determine and apply texture transform to map image tile into geometry tile's texture space
-                        this.computeTextureTransform(dc, tile, transform);
-                        gl.glScaled(transform.HScale, transform.VScale, 1d);
-                        gl.glTranslated(transform.HShift, transform.VShift, 0d);
+						// Determine and apply texture transform to map image tile into geometry tile's texture space
+						this.computeTextureTransform(dc, tile, transform);
+						gl.glScaled(transform.HScale, transform.VScale, 1d);
+						gl.glTranslated(transform.HShift, transform.VShift, 0d);
 
-                        if (showOutlines)
-                        {
-                            gl.glActiveTexture(GL.GL_TEXTURE1);
-                            this.outlineTexture.bind(gl);
+						if (showOutlines)
+						{
+							gl.glActiveTexture(GL.GL_TEXTURE1);
+							this.outlineTexture.bind(gl);
 
-                            // Apply the same texture transform to the outline texture. The outline textures uses a
-                            // different texture unit than the tile, so the transform made above does not carry over.
-                            gl.glMatrixMode(GL2.GL_TEXTURE);
-                            gl.glLoadIdentity();
-                            gl.glScaled(transform.HScale, transform.VScale, 1d);
-                            gl.glTranslated(transform.HShift, transform.VShift, 0d);
-                        }
+							// Apply the same texture transform to the outline texture. The outline textures uses a
+							// different texture unit than the tile, so the transform made above does not carry over.
+							gl.glMatrixMode(GL2.GL_TEXTURE);
+							gl.glLoadIdentity();
+							gl.glScaled(transform.HScale, transform.VScale, 1d);
+							gl.glTranslated(transform.HShift, transform.VShift, 0d);
+						}
 
-                        // Prepare the alpha texture to be used as a mask where texture coords are outside [0,1]
-                        gl.glActiveTexture(alphaTextureUnit);
-                        this.alphaTexture.bind(gl);
+						// Prepare the alpha texture to be used as a mask where texture coords are outside [0,1]
+						gl.glActiveTexture(alphaTextureUnit);
+						this.alphaTexture.bind(gl);
 
-                        // Apply the same texture transform to the alpha texture. The alpha texture uses a
-                        // different texture unit than the tile, so the transform made above does not carry over.
-                        gl.glMatrixMode(GL2.GL_TEXTURE);
-                        gl.glLoadIdentity();
-                        gl.glScaled(transform.HScale, transform.VScale, 1d);
-                        gl.glTranslated(transform.HShift, transform.VShift, 0d);
+						// Apply the same texture transform to the alpha texture. The alpha texture uses a
+						// different texture unit than the tile, so the transform made above does not carry over.
+						gl.glMatrixMode(GL2.GL_TEXTURE);
+						gl.glLoadIdentity();
+						gl.glScaled(transform.HScale, transform.VScale, 1d);
+						gl.glTranslated(transform.HShift, transform.VShift, 0d);
 
-                        // Render the geometry tile
-                        sg.renderMultiTexture(dc, numTexUnitsUsed);
-                    }
+						// Render the geometry tile
+						sg.renderMultiTexture(dc, numTexUnitsUsed);
+					}
                 }
 
                 sg.endRendering(dc);

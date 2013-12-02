@@ -3,7 +3,6 @@ package si.xlab.gaea.core.shaders;
 import gov.nasa.worldwind.geom.Matrix;
 import gov.nasa.worldwind.geom.Vec4;
 import java.net.URL;
-import javax.media.opengl.GL2;
 
 /**
  *
@@ -36,22 +35,6 @@ public class EmptyShader implements Shader{
 	}
 
 	@Override
-	public void enable(ShaderContext context)
-	{
-	}
-
-	@Override
-	public void disable(ShaderContext context)
-	{
-	}
-
-	@Override
-	public void dispose(ShaderContext context)
-	{
-		context.disposeShader(this.fileUrl);
-	}
-
-	@Override
 	public void setParam(String param, float[] floats)
 	{
 	}
@@ -62,17 +45,17 @@ public class EmptyShader implements Shader{
 	}
 
 	@Override
-	public void setParam(String param, Vec4 vec)
+	public void setParam(String param, int sampler)
 	{
 	}
 
 	@Override
-	public void setParam(String param, Matrix m)
+	public void setParam(String param, Vec4... vec)
 	{
 	}
 
 	@Override
-	public void setParam(String param, int textureUnit)
+	public void setParam(String param, Matrix... m)
 	{
 	}
 
@@ -98,4 +81,16 @@ public class EmptyShader implements Shader{
 	{
 		return 0;
 	}
+
+	@Override
+	public void setValid(boolean isValid) {
+	}
+
+	@Override
+	public void setActive(boolean isActive) {
+	}
+
+    @Override
+    public void flush() {
+    }
 }

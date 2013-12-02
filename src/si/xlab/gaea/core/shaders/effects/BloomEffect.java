@@ -33,12 +33,12 @@ public class BloomEffect extends AbstractEffect{
 		this.averageIntensityDiv = intensityDiviation;	
 	}
 
+	@Override
 	public int doRenderEffect(DrawContext dc){
 		
 		GL2 gl = dc.getGL().getGL2();
 
 		//generate bloom mask
-//		framebuffer.releaseTextures(dc);
 		framebuffer.attachTexture2D(dc, GL2.GL_COLOR_ATTACHMENT0, textureBloom, GL.GL_TEXTURE_2D);
 		framebuffer.setDrawBuffers(dc, new int[]{GL2.GL_COLOR_ATTACHMENT0});
 		framebuffer.isComplete(dc, false);
@@ -48,15 +48,14 @@ public class BloomEffect extends AbstractEffect{
 
 		Shader shader;
 		shader = dc.getShaderContext().getShader("IntensityFilter.glsl", "#version 120\n");
-		shader.enable(dc.getShaderContext());
+		
+		dc.getShaderContext().enable(shader);
 		shader.setParam("colorTex", 0);
 		shader.setParam("minA", new float[]{averageIntensity + 1.0f * averageIntensityDiv});
-//		shader.setParam("minB", new float[]{averageIntensity + 1.5f * averageIntensityDiv + averageIntensityDiv * 0.05f});
 		shader.setParam("minB", new float[]{averageIntensity + 2.0f * averageIntensityDiv});
 		shader.setParam("maxA", new float[]{200.0f});
 		shader.setParam("maxB", new float[]{300.0f});
 		drawQuadTex(gl);
-		shader.disable(dc.getShaderContext());
 
 		//blure bloom mask
 		blureEffect.setNumOfPasses(1);
@@ -67,6 +66,7 @@ public class BloomEffect extends AbstractEffect{
 		return out;
 	}
 
+	@Override
 	protected void doGenerateInternalTextures(GL gl){
 
 		if(!gl.glIsTexture(textureBloom)){

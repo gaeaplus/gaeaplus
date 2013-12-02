@@ -2,10 +2,9 @@ package si.xlab.gaea.core.shaders;
 
 import gov.nasa.worldwind.geom.Matrix;
 import gov.nasa.worldwind.geom.Vec4;
-import gov.nasa.worldwind.Disposable;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.media.opengl.GL2;
 import javax.media.opengl.GLContext;
@@ -25,15 +24,17 @@ public class BasicGLSLShader implements Shader{
 	private int fragmentID;
 
 	private boolean isValid;
+	private boolean isActive;
 
 	protected static final Logger logger = Logger.getLogger(BasicGLSLShader.class.getName());
 
-	private ParameterCache paramCache = new ParameterCache();
-
+	private HashMap<String, UniformParameter> parameters = new HashMap<String, UniformParameter>();
+	
 	public BasicGLSLShader(URL fileUrl, String runtimeCode)
 	{
 		this.fileUrl = fileUrl;
 		this.runtimeCode = runtimeCode;
+		this.isValid = false;
 	}
 
 	@Override
@@ -41,8 +42,14 @@ public class BasicGLSLShader implements Shader{
 		return isValid;
 	}
 	
-	public void setValid(boolean param){
-		this.isValid = param;
+	@Override
+	public void setValid(boolean isValid){
+		this.isValid = isValid;
+	}
+
+	@Override
+	public void setActive(boolean isActive){
+		this.isActive = isActive;
 	}
 
 	@Override
@@ -57,215 +64,89 @@ public class BasicGLSLShader implements Shader{
 		return runtimeCode;
 	}
 
-	@Override
-	public void enable(ShaderContext context)
-	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.enable(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
-		}
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-
-		if(!isValid){
-			String msg = "Trying to enable invalid shader: " + this.fileUrl.getFile();
-			logger.severe(msg);	
-			return;
-		}
-
-		if(context.getCurrentShader() == this){
-			return;
-		}
-
-		if(context.getCurrentShader() != null){
-			context.getCurrentShader().disable(context);
-			context.setCurrentShader(null);
-		}
-
-		gl.glUseProgram(programID);
-		context.setCurrentShader(this);
-	}
-
-	@Override
-	public void disable(ShaderContext context)
-	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.disable(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
-		}
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-
-		context.setCurrentShader(null);
-		gl.glUseProgram(0);
-	}
-
-	@Override
-	public void dispose(ShaderContext context)
-	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.dispose(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
-		}
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-
-		isValid = false;
-		paramCache.dispose();
-		if(gl.glIsProgram(programID)){
-			gl.glDeleteProgram(programID);
+    @Override
+	public void flush(){
+		//update parameters
+		for(UniformParameter parameter : this.parameters.values()){
+			parameter.execute();
 		}
 	}
 
 	@Override
 	public void setParam(String paramName, float[] floats)
 	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.setParam(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
+		UniformParameter up = parameters.get(paramName);
+		
+		if(up == null){
+			up = new UniformParameter(paramName, programID);
+			parameters.put(paramName, up);
 		}
-
-		if(floats == null){
-			return;
-		}
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-
-		int len = floats.length;
-		int p = paramCache.getParameter(paramName);
-
-		if(p == -1)
-			return;
-
-		switch(len){
-			case 1:
-				gl.glUniform1f(p, floats[0]);
-				break;
-			case 2:
-				gl.glUniform2f(p, floats[0], floats[1]);
-				break;
-			case 3:
-				gl.glUniform3f(p, floats[0], floats[1], floats[2]);
-				break;
-			case 4:
-				gl.glUniform4f(p, floats[0], floats[1], floats[2], floats[3]);
-				break;
-		}
-
+		
+		up.setValue(floats, 1);
+		
+		if(isActive && GLContext.getCurrent() != null){ up.execute(); } 
 	}
 
 	@Override
 	public void setParam(String paramName, int[] ints)
 	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.setParam(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
-		}
-
-		if(ints == null){
-			return;
-		}
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-
-		int len = ints.length;
-		int p = paramCache.getParameter(paramName);
-
-		if(p == -1)
-			return;
-
-		switch(len){
-			case 1:
-				gl.glUniform1i(p, ints[0]);
-				break;
-			case 2:
-				gl.glUniform2i(p, ints[0], ints[1]);
-				break;
-			case 3:
-				gl.glUniform3i(p, ints[0], ints[1], ints[2]);
-				break;
-			case 4:
-				gl.glUniform4i(p, ints[0], ints[1], ints[2], ints[3]);
-				break;
-		}
-
-	}
-
-	@Override
-	public void setParam(String paramName, Vec4 vec)
-	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.setParam(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
-		}
-
-		if(vec == null){
-			return;
-		}
-
-		int p = paramCache.getParameter(paramName);
-		if(p == -1)
-			return;
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-		gl.glUniform4f(p, (float)vec.x, (float)vec.y, (float)vec.z, (float)vec.w);
-	}
-
-	@Override
-	public void setParam(String paramName, Matrix m)
-	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.setParam(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
-		}
-
-		if(m == null){
-			return;
+		UniformParameter up = parameters.get(paramName);
+		
+		if(up == null){
+			up = new UniformParameter(paramName, programID);
+			parameters.put(paramName, up);
 		}
 		
-		int p = paramCache.getParameter(paramName);
-		if(p == -1)
-			return;
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-
-		gl.glUniformMatrix4fv(p, 1, false,  matrixToArray(m), 0);
+		up.setValue(ints, 1);
+		
+		if(isActive && GLContext.getCurrent() != null){ up.execute(); } 
 	}
 
 	@Override
-	public void setParam(String paramName, int textureUnit)
+	public void setParam(String paramName, int sampler)
 	{
-		if(GLContext.getCurrent() == null){
-			String message = "BasicGLSLShader.setParam(): GLContext not current!!";
-			logger.severe(message);
-			throw new IllegalStateException();
+		UniformParameter up = parameters.get(paramName);
+		
+		if(up == null){
+			up = new UniformParameter(paramName, programID);
+			parameters.put(paramName, up);
 		}
-
-		int p = paramCache.getParameter(paramName);
-		if(p == -1)
-			return;
-
-		GL2 gl = GLContext.getCurrent().getGL().getGL2();
-
-		gl.glUniform1i(p, textureUnit);
+		
+		up.setValue(new int[]{sampler}, 1);
+		
+		if(isActive && GLContext.getCurrent() != null){ up.execute(); } 
 	}
 
-	private float[] matrixToArray(Matrix m){
-		double[] mvD = new double[16];
-		mvD = m.toArray(mvD, 0, false);
-		float[] mvF = new float[16];
-		for(int i = 0; i<mvD.length; i++){
-			mvF[i] = (float)mvD[i];
+	@Override
+	public void setParam(String paramName, Vec4... vec)
+	{
+		UniformParameter up = parameters.get(paramName);
+		
+		if(up == null){
+			up = new UniformParameter(paramName, programID);
+			parameters.put(paramName, up);
 		}
-		return mvF;
+		
+		up.setValue(vec);
+		
+		if(isActive && GLContext.getCurrent() != null){ up.execute(); } 
 	}
+
+	@Override
+	public void setParam(String paramName, Matrix... m)
+	{
+		UniformParameter up = parameters.get(paramName);
+		
+		if(up == null){
+			up = new UniformParameter(paramName, programID);
+			parameters.put(paramName, up);
+		}
+		
+		up.setValue(m);
+		
+		if(isActive && GLContext.getCurrent() != null){ up.execute(); } 
+	}
+
 
 	@Override
 	public int getProgram(){
@@ -306,44 +187,162 @@ public class BasicGLSLShader implements Shader{
 		this.fragmentID = id;
 	}
 
-	private class ParameterCache implements Disposable{
+	private static class UniformParameter{
 
-		private HashMap<String, Integer> parameters = new HashMap<String, Integer>();
+		private final String name;
+		private final int program;
 
-		public int getParameter(String paramName){
+		private Integer id = null;
 
-			int parameter;
+		private int size;
 
-			if(GLContext.getCurrent() == null){
-				String message = "BasicGLSLShader.ParameterCache.getParameter(): GLContext not current!!";
-				logger.severe(message);
-				throw new IllegalStateException();
-			}
+		private int[] ints;
+		private float[] floats;
+		private Matrix[] matrices;
+		private Vec4[] vectors;
 
-			GL2 gl = GLContext.getCurrent().getGL().getGL2();
+		private boolean update = false;
+		
+		public UniformParameter(String name, int programID) {
+			this.name = name;
+			this.program = programID;
+		}
 
-			//parameters cache
-			if(!parameters.containsKey(paramName)){
-				//set parameter
+		public void setValue(int[] ints, int size){
+			if(Arrays.equals(this.ints, ints)){
+				return;
+			}	
+			this.ints = ints;	
+			this.size = size;
+			this.update = true;
+		}
 
-				parameter = gl.glGetUniformLocation(programID, paramName);
+		public void setValue(float[] floats, int size){
+			if(Arrays.equals(this.floats, floats)){
+				return;
+			}	
+			this.floats = floats;	
+			this.size = size;
+			this.update = true;
+		}
 
-				if(parameter == -1){
-					String message = "In shader: " + getURL().getFile() + " ShaderParameter: " + paramName + " NOT FOUND or NOT USED!";
-					logger.log(Level.FINE, message);
+		public void setValue(Vec4[] v){
+			if(Arrays.equals(this.vectors, v)){
+				return;
+			}	
+			this.vectors = v;	
+			this.size = v.length;
+			this.update = true;
+		}
+
+		public void setValue(Matrix[] m){
+			if(Arrays.equals(this.matrices, m)){
+				return;
+			}	
+			this.matrices = m;	
+			this.size = m.length;
+			this.update = true;
+		}
+
+		public void execute() {
+			GL2 gl = GLContext.getCurrentGL().getGL2();
+			
+			if(id == null) { id = gl.glGetUniformLocation(program, name); }
+			if(id == -1) { return; }
+			
+			if(update) { update = false; }
+			else { return; }
+			
+			if(ints != null){
+				switch(ints.length / size){
+					case 1:
+						gl.glUniform1iv(id, size, ints, 0);
+						break;
+					case 2:
+						gl.glUniform2iv(id, size, ints, 0);
+						break;
+					case 3:
+						gl.glUniform3iv(id, size, ints, 0);
+						break;
+					case 4:
+						gl.glUniform4iv(id, size, ints, 0);
+						break;
 				}
-				this.parameters.put(paramName, parameter);
 			}
-			else{
-				parameter = parameters.get(paramName);
+			else if(floats != null){
+				switch(floats.length / size){
+					case 1:
+						gl.glUniform1fv(id, size, floats, 0);
+						break;
+					case 2:
+						gl.glUniform2fv(id, size, floats, 0);
+						break;
+					case 3:
+						gl.glUniform3fv(id, size, floats, 0);
+						break;
+					case 4:
+						gl.glUniform4fv(id, size, floats, 0);
+						break;
+				}	
 			}
+			else if(vectors != null){
+				gl.glUniform4fv(id, size, vectorToArray(vectors), 0);	
+			}
+			else if(matrices != null){
+				gl.glUniformMatrix4fv(id, size, false,  matrixToArray(matrices), 0);
+			}
+		}
 
-			return parameter;
+		private float[] vectorToArray(Vec4... vectors){
+			double[] temp = new double[4];
+			
+			int counter = 0;
+			float[] vf = new float[vectors.length * 4];
+			for(Vec4 v : vectors){
+				temp = v.toArray4(temp, 0);
+				
+				for(int i = 0; i<temp.length; i++){
+					vf[counter] = (float)temp[i];
+					counter++;
+				}
+			}
+			return vf;
+		}
+
+		private float[] matrixToArray(Matrix... matrices){
+			
+			double[] temp = new double[16];
+			
+			int counter = 0;
+			float[] mvF = new float[matrices.length * 16];
+			for(Matrix m : matrices){
+				temp = m.toArray(temp, 0, false);
+				
+				for(int i = 0; i<temp.length; i++){
+					mvF[counter] = (float)temp[i];
+					counter++;
+				}
+			}
+			return mvF;
 		}
 
 		@Override
-		public void dispose(){
-			parameters.clear();
+		public int hashCode() {
+			int hash =1;
+			hash = hash * 17 + program;
+			hash = hash * 353 + name.hashCode();
+			return hash;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+
+			if(obj instanceof UniformParameter){
+				return (name.equals(((UniformParameter)obj).name) && program == ((UniformParameter)obj).program);
+			}
+			else{
+				return false;
+			}
 		}
 	}
 }

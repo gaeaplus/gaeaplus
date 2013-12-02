@@ -147,12 +147,14 @@ public class HeightMapLayer extends TiledImageLayer {
 				tr1.draw("Please be patient... Speed depends on internet connection and computer hardware.", 20, 90);
 				tr1.draw("In the meantime you can disable the effects (from a menu, toolbar or command-line setting).", 20, 70);
 				tr1.endRendering();
+				tr1.dispose();
 				
 				TextRenderer tr2 = new TextRenderer(Font.decode(Font.SANS_SERIF + "-" + "16"));
 				tr2.beginRendering(dc.getDrawableWidth(), dc.getDrawableHeight());
 				tr2.setColor(1.0f, 0.5f, 0.5f, 1.0f);
 				tr2.draw("Downloading elevations: " + String.format("%.2f", (percentageDone * 100.0f)) + "% done.", 20, 50);
 				tr2.endRendering();
+				tr2.dispose();
 			}
 		});
 	}

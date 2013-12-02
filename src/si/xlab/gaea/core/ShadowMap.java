@@ -468,8 +468,8 @@ public class ShadowMap {
 				framebuffer.bind(dc);
 
 				if(!framebuffer.hasTextureAttached()){
-        			framebuffer.attachTexture2D(dc, GL2.GL_DEPTH_ATTACHMENT, texture.getTextureObject(gl), GL.GL_TEXTURE_2D);
-					framebuffer.setDrawBuffers(dc, new int[]{GL.GL_DEPTH_ATTACHMENT});
+                    framebuffer.attachTexture2D(dc, GL2.GL_DEPTH_ATTACHMENT, texture.getTextureObject(gl), GL.GL_TEXTURE_2D);
+                    framebuffer.attachRenderbuffer(dc, textureWidth, textureHeight, GL.GL_RGBA, GL.GL_COLOR_ATTACHMENT0, 0);
 				}
 
 				if(!framebuffer.isComplete(dc, true)){
@@ -597,7 +597,7 @@ public class ShadowMap {
 			}
 			catch (Throwable e)
 			{
-				Logging.logger().log(Level.SEVERE, Logging.getMessage("ShadowMap.ExceptionDuringRendering"), e);
+				Logging.logger().log(Level.SEVERE, "ShadowMap.ExceptionDuringRendering", e);
 			}
 		}
 

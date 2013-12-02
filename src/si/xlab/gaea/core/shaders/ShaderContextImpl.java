@@ -25,10 +25,10 @@ public class ShaderContextImpl implements ShaderContext{
 
 	private DrawContext dc;
 
-	private HashMap<ShaderKey, Shader> shaders = new HashMap<ShaderKey, Shader>();
-	private Stack<Shader> shadersStack = new Stack<Shader>();
+	private final HashMap<ShaderKey, Shader> shaders = new HashMap<ShaderKey, Shader>();
+	private final Stack<Shader> shadersStack = new Stack<Shader>();
 	
-	private final Logger logger = Logging.logger(ShaderContextImpl.class.getName());
+	private static final Logger logger = Logging.logger(ShaderContextImpl.class.getName());
 
 	private static class ShaderKey{
 		public URL url;
@@ -68,26 +68,98 @@ public class ShaderContextImpl implements ShaderContext{
 		}
 	}
 
+	@Override
 	public void apply(DrawContext dc){
 		this.dc = dc;
 		GL gl = dc.getGL();
 		glslCompiler.defineSupportedShaders(gl);
 	}
 
-	public void setCurrentShader(Shader shader){
-		this.currentShader = shader;
+	@Override
+	public void enable(Shader shader){
+		if(GLContext.getCurrent() == null){
+			String message = "BasicGLSLShader.enable(): GLContext not current!!";
+			logger.severe(message);
+			throw new IllegalStateException();
+		}
+
+		GL2 gl = GLContext.getCurrent().getGL().getGL2();
+
+		if(!shader.isValid()){
+			logger.severe("Trying to enable invalid shader!");	
+			return;
+		}
+
+		if(currentShader != shader){
+            
+            if(currentShader != null){
+                currentShader.setActive(false);
+            }
+            
+			gl.glUseProgram(shader.getProgram());
+			currentShader = shader;
+			currentShader.setActive(true);
+            currentShader.flush();
+		}
 	}
 
+	@Override
+	public void disableShaders(){
+		if(GLContext.getCurrent() == null){
+			String message = "BasicGLSLShader.disable(): GLContext not current!!";
+			logger.severe(message);
+			throw new IllegalStateException();
+		}
+
+		GL2 gl = GLContext.getCurrent().getGL().getGL2();
+
+		gl.glUseProgram(0);
+
+		if(currentShader != null){
+			currentShader.setActive(false);
+			currentShader = null;
+		}
+	}
+
+	@Override
+	public void dispose(Shader shader){
+		if(GLContext.getCurrent() == null){
+			String message = "BasicGLSLShader.dispose(): GLContext not current!!";
+			logger.severe(message);
+			throw new IllegalStateException();
+		}
+
+		GL2 gl = GLContext.getCurrent().getGL().getGL2();
+		
+		ShaderKey key = new ShaderKey(shader.getURL(), shader.getRuntimeCode());
+
+		if(currentShader == shader){
+			currentShader = null;
+		}
+
+		shader.setValid(false);
+		shader.setActive(false);
+
+		if(gl.glIsProgram(shader.getProgram())){
+			gl.glDeleteProgram(shader.getProgram());
+		}
+
+		shaders.remove(key);
+	}
+
+	@Override
 	public Shader getCurrentShader(){
 		return this.currentShader;
 	}
 
+	@Override
 	public void pushShader(){
 		if(this.currentShader != null){
 			this.shadersStack.push(this.currentShader);
 		}
 	}
 
+	@Override
 	public void popShader(){
 		if(GLContext.getCurrent() == null){
 			String message = "BasicShaderContext.popShader: GLContext not current!!";
@@ -97,12 +169,10 @@ public class ShaderContextImpl implements ShaderContext{
 		
 		if(!shadersStack.isEmpty()){
 			Shader shader = shadersStack.pop();
-			shader.enable(this);
+			enable(shader);
 		}
 		else{
-			GL2 gl = GLContext.getCurrent().getGL().getGL2();
-            setCurrentShader(null);
-			gl.glUseProgram(0);
+			disableShaders();
 		}
 	}
 
@@ -111,64 +181,49 @@ public class ShaderContextImpl implements ShaderContext{
 		return this.glslCompiler.isShaderVersionSupported(version);
 	}
 
+	@Override
 	public DrawContext getDC(){
 		return this.dc;
 	}
 
+	@Override
 	public BasicGLSLCompiler getGLSLCompiler()
 	{
 		return glslCompiler;
 	}
 
+	@Override
 	public void setGLSLCompiler(BasicGLSLCompiler compiler)
 	{
 		this.glslCompiler = compiler;
 	}
 
+	@Override
 	public void setShaderFactory(ShaderFactory shaderFactory){
 		this.shaderFactory = shaderFactory;
 	}
 
+	@Override
 	public ShaderFactory getShaderFactory(){
 		return this.shaderFactory;
 	}
 
+	@Override
 	public Shader getShader(String fileName, String runtimeCode){
-		return getShader(fileName, runtimeCode, false);
-	}
-
-	public Shader getShader(String fileName, String runtimeCode, boolean removeExisting){
 		URL fileUrl = this.shaderFactory.getClass().getResource(fileName);
-        return getShader(fileUrl, runtimeCode, removeExisting);
+        return doGetShader(fileUrl, runtimeCode);
 	}
 
 	@Override
 	public Shader getShader(URL fileUrl, String runtimeCode){
-		return getShader(fileUrl, runtimeCode, false);
+		return doGetShader(fileUrl, runtimeCode);
 	}
 
-	public Shader getShader(URL fileUrl, String runtimeCode, boolean removeExisting){
+	public Shader doGetShader(URL fileUrl, String runtimeCode){
 		ShaderKey key = new ShaderKey(fileUrl, runtimeCode);
 		Shader shader = this.shaders.get(key);
 
 		if(shader == null){
-
-			if(removeExisting){
-				Stack<ShaderKey> stack = new Stack<ShaderKey>();
-				for(ShaderKey k : this.shaders.keySet()){
-					if(k.url.equals(fileUrl)){
-						shader.disable(this);
-						stack.push(k);
-						shader.dispose(this);
-						shader = null;	
-					}
-				}
-				for(ShaderKey sk : stack){
-					shaders.remove(sk);
-				}
-				stack.clear();
-			}
-			
 			if(fileUrl.getFile().endsWith("glsl")){
 				shader = shaderFactory.buildGLSLShader(this, runtimeCode, fileUrl);
 			}
@@ -178,25 +233,16 @@ public class ShaderContextImpl implements ShaderContext{
 	}
 
 	@Override
-	public void disposeShader(URL shaderFileUrl)
-	{
-		Shader shader;
-		if(this.shaders.containsKey(shaderFileUrl)){
-			shader = this.shaders.get(shaderFileUrl);
-			this.shaders.remove(shaderFileUrl);
-			shader.dispose(this);
-		}
-	}
-
-	@Override
 	public void dispose()
 	{
+		disableShaders();
+		
 		for(Shader shader : this.shaders.values()){
-			shader.disable(this);
-			shader.dispose(this);
+			dispose(shader);
 		}
 
 		this.shaders.clear();
+
 		//TODO: debug error on cgContext destroy/create
 //		cgCompiler.dispose();
 //		glslCompiler.dispose();

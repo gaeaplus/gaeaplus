@@ -260,7 +260,7 @@ public class GlobalLighting
             
             if (dc.isAerialPerspectiveEnabled())
             {
-                renderTerrainArialPerspective(dc);
+                renderTerrainAerialPerspective(dc);
             } else
             {
                 renderTerrain(dc);
@@ -296,7 +296,7 @@ public class GlobalLighting
             
             if (dc.isAerialPerspectiveEnabled())
             {
-                renderTerrainArialPerspective(dc);
+                renderTerrainAerialPerspective(dc);
             } else
             {
                 renderTerrain(dc);
@@ -465,7 +465,7 @@ public class GlobalLighting
         glslOptions += dc.isPosEffectsEnabled() ? "#define _POSEFFECTS_ \n" : "";
 
         shader = dc.getShaderContext().getShader("Atmosphere_1.glsl", glslOptions);
-        shader.enable(dc.getShaderContext());
+		dc.getShaderContext().enable(shader);
 
         dc.getView().pushReferenceCenter(dc, Vec4.ZERO);
 
@@ -482,8 +482,6 @@ public class GlobalLighting
 
         drawQuadTex(dc.getGL().getGL2());
         dc.getView().popReferenceCenter(dc);
-
-        shader.disable(dc.getShaderContext());
     }
 
     public void renderTerrain(DrawContext dc)
@@ -496,8 +494,7 @@ public class GlobalLighting
 		
         Shader shader;
         shader = dc.getShaderContext().getShader("TerrainLighting_1.glsl", glslOptions);
-			
-        shader.enable(dc.getShaderContext());
+		dc.getShaderContext().enable(shader);	
 
         if (dc.isShadowsEnabled())
         {
@@ -528,10 +525,9 @@ public class GlobalLighting
         dc.getView().pushReferenceCenter(dc, Vec4.ZERO);
         drawQuadTex(dc.getGL().getGL2());
         dc.getView().popReferenceCenter(dc);
-        shader.disable(dc.getShaderContext());
     }
 
-    public void renderTerrainArialPerspective(DrawContext dc)
+    public void renderTerrainAerialPerspective(DrawContext dc)
     {
         Shader shader;
 
@@ -541,8 +537,7 @@ public class GlobalLighting
         glslOptions += (useShadowVolume && dc.isShadowsEnabled()) ? "#define _SHADOW_VOLUME_ \n" : "";
 
         shader = dc.getShaderContext().getShader("TerrainLightingAerialPerspective_1.glsl", glslOptions);
-
-        shader.enable(dc.getShaderContext());
+		dc.getShaderContext().enable(shader);
 
         if (dc.isShadowsEnabled())
         {
@@ -581,8 +576,6 @@ public class GlobalLighting
         dc.getView().pushReferenceCenter(dc, Vec4.ZERO);
         drawQuadTex(dc.getGL().getGL2());
         dc.getView().popReferenceCenter(dc);
-
-        shader.disable(dc.getShaderContext());
     }
 
     public static float calcExposure(DrawContext dc)
